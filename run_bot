@@ -1,1 +1,1 @@
-ssh -i id_rsa -p 29418 gerrit.wikimedia.org  gerrit stream-events | python add_reviewer.py
+ssh -i id_rsa -p 29418 reviewer-bot@gerrit.wikimedia.org  gerrit stream-events | python add_reviewer.py

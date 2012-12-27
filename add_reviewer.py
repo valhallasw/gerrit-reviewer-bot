@@ -10,12 +10,11 @@ while True:
         continue
     change = data['change']
     patchset = data['patchSet']
-    if patchset['number'] != 1:
-        print "Skipping patchset, not first but %s nd" % patchset['number']
-        print "(not really)"
+    if int(patchset['number']) != 1:
+        continue
 
     if change['project'] == 'test/mediawiki/extensions/examples':
-        reviewers = ['Merlijn van Deen']
+        reviewers = ['Merlijn van Deen', 'Sumanah']
     else:
         reviewers = []
 
@@ -27,4 +26,4 @@ while True:
         params.append(change['id'])
         command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
         print command
-        print subprocess.call(["ssh", "-i", "id.rsa", "-p", "29418", "gerrit.wikimedia.org", command])
+        print subprocess.call(["ssh", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command])
