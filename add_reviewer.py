@@ -27,4 +27,4 @@ while True:
         params.append(change['id'])
         command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
         print command
-        print subprocess.call(["ssh", "-p", "29418", "gerrit.wikimedia.org", command])
+        print subprocess.call(["ssh", "-i", "id.rsa", "-p", "29418", "gerrit.wikimedia.org", command])
