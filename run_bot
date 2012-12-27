@@ -1,1 +1,3 @@
+#!/bin/bash
+PYWIKIBOT2_DIR=$PWD
 ssh -i id_rsa -p 29418 reviewer-bot@gerrit.wikimedia.org  gerrit stream-events | python add_reviewer.py
