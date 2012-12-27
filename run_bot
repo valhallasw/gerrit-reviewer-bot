@@ -1,0 +1,1 @@
+ssh -p 29418 gerrit.wikimedia.org  gerrit stream-events | python add_reviewer.py
