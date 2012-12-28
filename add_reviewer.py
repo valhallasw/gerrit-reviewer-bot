@@ -43,7 +43,7 @@ class ReviewerFactory(object):
                     reviewer = None; modulo = 1
                     for part in sibling.iter('part'):
                         if part.name == "" and part.name.attrib['index'] == '1':
-                            reviewer = part.value
+                            reviewer = part.value.text
                         elif part.name == "every":
                             modulo = self._tryParseInt(part.value, 1)
                             if modulo < 2:
@@ -70,6 +70,8 @@ def test_get_reviewers():
     for i in range(5):
         change = {'number': i, 'project': name}
         revs = get_reviewers(change, RF)
+        for rev in revs:
+            assert isinstance(rev, str)
         if i % 5 == 0:
             assert revs == ["Merlijn van Deen", "Sumanah"]
         else:
