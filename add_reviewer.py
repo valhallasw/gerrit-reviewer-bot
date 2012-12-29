@@ -3,10 +3,17 @@ from pipes import quote
 import subprocess
 import pywikibot
 import lxml.objectify
+import re
+
+import sys
+sys.path.append('python-gerrit')
+from gerrit.rpc import Client; g=Client('https://gerrit.wikimedia.org/r/');
 
 site = pywikibot.getSite('mediawiki', 'mediawiki')
 
 class ReviewerFactory(object):
+    nofilere = re.compile('')
+
     def __init__(self, site=pywikibot.getSite('mediawiki', 'mediawiki'),
                        page="Git/Reviewers",
                        template="Gerrit-reviewer"):
@@ -30,7 +37,7 @@ class ReviewerFactory(object):
         except Exception, e:
             return default
 
-    def reviewer_generator(self, project):
+    def reviewer_generator(self, project, changedfiles):
         tree = self.objecttree
 
         for section in tree.iter('h'):
@@ -40,7 +47,7 @@ class ReviewerFactory(object):
                 if sibling.tag == "h":
                     break
                 if sibling.tag == "template" and sibling.title == self.template:
-                    reviewer = None; modulo = 1
+                    reviewer = None; modulo = 1; filere=self.nofilere
                     for part in sibling.iter('part'):
                         if part.name == "" and part.name.attrib['index'] == '1':
                             reviewer = part.value.text
@@ -48,13 +55,22 @@ class ReviewerFactory(object):
                             modulo = self._tryParseInt(part.value, 1)
                             if modulo < 2:
                                 modulo = 1
-                    yield reviewer, modulo
+                        elif part.name == "file_regexp":
+                            filere = re.compile(part.value.text or part.value.ext.inner.text)
+                    if any(filere.match(file) for file in changedfiles):
+                        yield reviewer, modulo
+
 
 def get_reviewers(change, RF=ReviewerFactory()):
     try:
         num = int(change['number'])
         reviewers = []
-        for i, (reviewer, modulo) in enumerate(RF.reviewer_generator(change['project'])):
+        try:
+            changedfiles = [p.path for p in g.change_details(num).last_patchset_details.patches]
+        except Exception, e:
+            print e
+            changedfiles = []
+        for i, (reviewer, modulo) in enumerate(RF.reviewer_generator(change['project'], changedfiles)):
             if ((num + i) % modulo == 0):
                 reviewers.append(reviewer)
         return reviewers
@@ -67,7 +83,7 @@ def test_get_reviewers():
     RF._data = json.load(open("api_result"))
     name = 'test/mediawiki/extensions/examples'
 
-    for i in range(5):
+    for i in [40978, 40976, 40975]:
         change = {'number': i, 'project': name}
         revs = get_reviewers(change, RF)
         for rev in revs:
@@ -78,7 +94,7 @@ def test_get_reviewers():
             assert revs == ["Sumanah"]
 
     RF = ReviewerFactory()
-    for i in range(5):
+    for i in [40978, 40976, 40975, 34673]:
         change = {'number': i, 'project': name}
         revs = get_reviewers(change, RF)
         print name, i, revs
