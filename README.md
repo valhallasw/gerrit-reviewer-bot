@@ -37,3 +37,9 @@ test/mediawiki/extensions/examples 3 ['Merlijn van Deen']
 test/mediawiki/extensions/examples 4 ['Merlijn van Deen']
 ```
 (again: or what the current reviewers are)
+
+L10n-bot commits are filtered:
+``` bash
+$ cat l10n-test | python add_reviewer.py
+Skipping L10n patchset  41058
+```

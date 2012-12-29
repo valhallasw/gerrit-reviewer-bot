@@ -93,6 +93,9 @@ if __name__ == "__main__":
         patchset = data['patchSet']
         if int(patchset['number']) != 1:
             continue
+        if change['owner']['name'] == 'L10n-bot':
+            print "Skipping L10n patchset ", change['number']
+            continue
 
         reviewers = get_reviewers(change)
 
