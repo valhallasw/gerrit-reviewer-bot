@@ -3,7 +3,7 @@ if [ ! -e pywikibot ]
 then
   svn co http://svn.wikimedia.org/svnroot/pywikipedia/branches/rewrite/pywikibot
 fi
-if [ ! -e gerrit-python ]
+if [ ! -e python-gerrit ]
 then
   git clone https://github.com/bcwaldon/python-gerrit.git
 fi
