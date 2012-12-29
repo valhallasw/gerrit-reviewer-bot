@@ -56,7 +56,7 @@ class ReviewerFactory(object):
                             if modulo < 2:
                                 modulo = 1
                         elif part.name == "file_regexp":
-                            filere = re.compile(part.value.text or part.value.ext.inner.text)
+                            filere = re.compile(part.value.text or part.value.ext.inner.text, flags=re.DOTALL | re.IGNORECASE)
                     if any(filere.match(file) for file in changedfiles):
                         yield reviewer, modulo
 
