@@ -41,7 +41,8 @@ class ReviewerFactory(object):
         tree = self.objecttree
 
         for section in tree.iter('h'):
-            if section.text.strip('= ') != project:
+            name = section.text.strip('= ')
+            if (name != project) and (name != "*"):
                 continue
             for sibling in section.itersiblings():
                 if sibling.tag == "h":
