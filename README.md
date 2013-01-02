@@ -18,7 +18,8 @@ cat stream-events-example | python add_reviewer.py
 
 Expected output:
 ```
-gerrit set-reviewers --add 'Merlijn van Deen' I87fa5cb799c0b9367daad8c2cbb2b8c47f45fcfc
+Removing owner Merlijn van Deen from reviewer list ['Merlijn van Deen', 'Sumanah']
+gerrit set-reviewers --add Sumanah I87fa5cb799c0b9367daad8c2cbb2b8c47f45fcfc
 <errors because you haven't added the right id_rsa>
 ```
 (or whatever the current reviewers for test/mediawiki/extensions/examples are)
