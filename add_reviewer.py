@@ -4,8 +4,10 @@ import subprocess
 import pywikibot
 import lxml.objectify
 import re
-
+import traceback
 import sys
+import time
+
 sys.path.append('python-gerrit')
 from gerrit.rpc import Client; g=Client('https://gerrit.wikimedia.org/r/');
 
@@ -63,7 +65,6 @@ class ReviewerFactory(object):
 
 
 def get_reviewers(change, RF=ReviewerFactory()):
-    try:
         num = int(change['number'])
         reviewers = []
         try:
@@ -75,9 +76,6 @@ def get_reviewers(change, RF=ReviewerFactory()):
             if ((num + i) % modulo == 0):
                 reviewers.append(reviewer)
         return reviewers
-    except Exception, e:
-        print e
-        return []
 
 def test_get_reviewers():
     RF = ReviewerFactory()
@@ -103,30 +101,42 @@ def test_get_reviewers():
 if __name__ == "__main__":
     while True:
         line = sys.stdin.readline()
-        data = json.loads(line)
-        if data['type'] != 'patchset-created':
-            continue
-        change = data['change']
-        patchset = data['patchSet']
-        if int(patchset['number']) != 1:
-            continue
+        if not line:
+            break
+        try:
+            data = json.loads(line)
+            if data['type'] != 'patchset-created':
+                continue
+            change = data['change']
+            patchset = data['patchSet']
+            if int(patchset['number']) != 1:
+                continue
 
-        owner = change['owner']['name']
-        if owner == 'L10n-bot':
-            print "Skipping L10n patchset ", change['number']
-            continue
+            owner = change['owner']['name']
+            if owner == 'L10n-bot':
+                print "Skipping L10n patchset ", change['number']
+                continue
 
-        reviewers = get_reviewers(change)
-        if owner in reviewers:
-            print "Removing owner %s from reviewer list %r" % (owner, reviewers)
-            reviewers.remove(owner)
+            reviewers = get_reviewers(change)
+            if owner in reviewers:
+                print "Removing owner %s from reviewer list %r" % (owner, reviewers)
+                reviewers.remove(owner)
 
-        if reviewers:
-            params = []
-            for reviewer in reviewers:
-                params.append('--add')
-                params.append(reviewer)
-            params.append(change['id'])
-            command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
-            print command
-            print subprocess.call(["ssh", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command])
+            if reviewers:
+                params = []
+                for reviewer in reviewers:
+                    params.append('--add')
+                    params.append(reviewer)
+                params.append(change['id'])
+                command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
+                print command
+                print subprocess.call(["ssh", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command])
+        except Exception, e:
+            print "-"*80
+            print "Exception %r caused by line:" % e
+            print "-"*80
+            print line,
+            print "-"*80
+            traceback.print_exc()
+            print "-"*80
+            time.sleep(3)

@@ -44,3 +44,17 @@ L10n-bot commits are filtered:
 $ cat l10n-test | python add_reviewer.py
 Skipping L10n patchset  41058
 ```
+
+``` bash
+$ cat stream-bug-example | python add_reviewer.py
+--------------------------------------------------------------------------------
+Exception KeyError('change',) caused by line:
+--------------------------------------------------------------------------------
+{"type":"patchset-created"}
+--------------------------------------------------------------------------------
+Traceback (most recent call last):
+  File "add_reviewer.py", line 110, in <module>
+    change = data['change']
+KeyError: 'change'
+--------------------------------------------------------------------------------
+```
