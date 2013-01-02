@@ -112,12 +112,12 @@ if __name__ == "__main__":
             if int(patchset['number']) != 1:
                 continue
 
-            owner = change['owner']['name']
-            if owner == 'L10n-bot':
+            owner = change['owner']['name'].lower()
+            if owner == 'l10n-bot':
                 print "Skipping L10n patchset ", change['number']
                 continue
 
-            reviewers = get_reviewers(change)
+            reviewers = [r.lower() for r in get_reviewers(change)]
             if owner in reviewers:
                 print "Removing owner %s from reviewer list %r" % (owner, reviewers)
                 reviewers.remove(owner)
