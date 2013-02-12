@@ -5,7 +5,8 @@ then
 fi
 if [ ! -e python-gerrit ]
 then
-  git clone https://github.com/bcwaldon/python-gerrit.git
+  git clone https://github.com/valhallasw/python-gerrit.git #https://github.com/bcwaldon/python-gerrit.git
+  cd python-gerrit; git co rpcurls; cd ..      
 fi
 
 export PYWIKIBOT2_DIR=$PWD

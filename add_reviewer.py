@@ -9,7 +9,7 @@ import sys
 import time
 
 sys.path.append('python-gerrit')
-from gerrit.rpc import Client; g=Client('https://gerrit.wikimedia.org/r/');
+from gerrit.rpc import Client; g=Client('https://gerrit.wikimedia.org/r/', 'gerrit_ui/rpc');
 
 site = pywikibot.getSite('mediawiki', 'mediawiki')
 
