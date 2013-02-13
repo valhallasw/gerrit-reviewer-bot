@@ -98,6 +98,19 @@ def test_get_reviewers():
         revs = get_reviewers(change, RF)
         print name, i, revs
 
+def add_reviewers(changeid, reviewers):
+    if reviewers:
+        params = []
+        for reviewer in reviewers:
+            params.append('--add')
+            params.append(reviewer)
+        params.append(changeid)
+        command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
+        print command
+        retval = subprocess.call(["ssh", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command])
+        if retval != 0:
+            raise Exception(command + ' was not executed successfully (code %i)' % retval)
+
 if __name__ == "__main__":
     while True:
         line = sys.stdin.readline()
