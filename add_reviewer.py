@@ -99,6 +99,7 @@ def test_get_reviewers():
         print name, i, revs
 
 def add_reviewers(changeid, reviewers):
+    reviewers = list(reviewers)
     if reviewers:
         params = []
         for reviewer in reviewers:
