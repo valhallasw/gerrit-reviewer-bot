@@ -77,7 +77,7 @@ for j,changeset in enumerate(new_changeset_generator(mailbox)):
     number = changeset['_number']
 
     print ""
-    print "Processing changeset ", changeset['change_id'], changeset['subject']
+    print "Processing changeset ", changeset['change_id'], changeset['subject'], 'by', owner
     print "  " + "\n  ".join(changedfiles)
 
     reviewers = filter_reviewers(RF.reviewer_generator(project, changedfiles), owner, number)
