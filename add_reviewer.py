@@ -9,7 +9,7 @@ import sys
 import time
 
 sys.path.append('python-gerrit')
-from gerrit.rpc import Client; g=Client('https://gerrit.wikimedia.org/r/', 'gerrit_ui/rpc');
+g = None
 
 site = pywikibot.getSite('mediawiki', 'mediawiki')
 
@@ -113,6 +113,7 @@ def add_reviewers(changeid, reviewers):
             raise Exception(command + ' was not executed successfully (code %i)' % retval)
 
 if __name__ == "__main__":
+    from gerrit.rpc import Client; g=Client('https://gerrit.wikimedia.org/r/', 'gerrit_ui/rpc');
     while True:
         line = sys.stdin.readline()
         if not line:

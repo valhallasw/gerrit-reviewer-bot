@@ -39,24 +39,22 @@ def gerritmail_generator(mailbox):
 import gerrit_rest
 g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
 
-def new_changeset_generator(mailbox, o=['CURRENT_REVISION', 'CURRENT_FILES']):
+def get_changeset(changeid, o=['CURRENT_REVISION', 'CURRENT_FILES']):
+        matchingchanges = g.changes(changeid, n=1, o=o)
+        if matchingchanges:
+            return matchingchanges[0]
+        else:
+            return None
+
+def new_changeset_generator(mailbox):
     for mail in gerritmail_generator(mailbox):
         if mail.get('X-Gerrit-MessageType', '') != 'newchange':
             continue
         if mail.get('Gerrit-PatchSet', '') != '1':
             continue
-        matchingchanges = g.changes(q=mail['X-Gerrit-Change-Id'], n=1, o=o)
-        if matchingchanges:
-            yield matchingchanges[0]
-
-mailbox = mkmailbox(0)
-nmails, octets = mailbox.stat()
-
-print "%i e-mails to process (%i kB)" % (nmails, octets/1024)
-
-from add_reviewer import ReviewerFactory, add_reviewers
-
-RF = ReviewerFactory()
+        matchingchange = get_changeset(mail['X-Gerrit-Change-Id'])
+        if matchingchange:
+            yield matchingchange
 
 def filter_reviewers(reviewers, owner_name, changeset_number):
     if owner_name.lower() == u'l10n-bot':
@@ -70,7 +68,10 @@ def filter_reviewers(reviewers, owner_name, changeset_number):
         if ((changeset_number + i) % modulo == 0):
             yield reviewer
 
-for j,changeset in enumerate(new_changeset_generator(mailbox)):
+from add_reviewer import ReviewerFactory, add_reviewers
+RF = ReviewerFactory()
+
+def get_reviewers_for_changeset(changeset):
     owner = changeset['owner']['name']
     changedfiles = changeset['revisions'].values()[0]['files'].keys()
     project = changeset['project']
@@ -82,6 +83,16 @@ for j,changeset in enumerate(new_changeset_generator(mailbox)):
 
     reviewers = filter_reviewers(RF.reviewer_generator(project, changedfiles), owner, number)
 
-    add_reviewers(changeset['change_id'], reviewers)
+    return reviewers
 
-mailbox.quit()
+if __name__ == "__main__":
+    mailbox = mkmailbox(0)
+    nmails, octets = mailbox.stat()
+
+    print "%i e-mails to process (%i kB)" % (nmails, octets/1024)
+
+    for j,changeset in enumerate(new_changeset_generator(mailbox)):
+        reviewers = get_reviewers_for_changeset(changeset)
+        add_reviewers(changeset['change_id'], reviewers)
+
+    mailbox.quit()

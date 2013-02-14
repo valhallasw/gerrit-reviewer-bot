@@ -2,59 +2,53 @@ Gerrit reviewer bot for WMF's Gerrit.
 
 This bot reads reviewers from http://www.mediawiki.org/wiki/Git/Reviewers and adds them to changes in Gerrit.
 
+Changes are read from SSH ('add_reviewers.py') or POP3 ('pop3bot.py').
 
-Usage
------
-First, copy reviewer-bot's id_rsa to the working directory. Then:
+__fdsa_
+Development
+-----------
 ``` bash
-./run_bot
+virtualenv --system-site-packages reviewer-bot && cd reviewer-bot
+source bin/activate
+git clone http://github.com/valhallasw/gerrit-reviewer-bot src
+cd src
+pip install -r requirements
+svn co http://svn.wikimedia.org/svnroot/pywikipedia/branches/rewrite/pywikibot
 ```
 
-Testing
--------
+Then, to test:
 ``` bash
-cat stream-events-example | python add_reviewer.py
+$ python test.py Ic1250e94c2cbbd3cdc7f1f593be0e204bf735877
+Processing changeset  Ic1250e94c2cbbd3cdc7f1f593be0e204bf735877 Moved to TWN, test whether the deployment really works... by Merlijn van Deen
+  test.i18n.txt
+Suggested reviewers:  ['siebrand', 'Sumanah']
 ```
 
-Expected output:
-```
-Removing owner Merlijn van Deen from reviewer list ['Merlijn van Deen', 'Sumanah']
-gerrit set-reviewers --add Sumanah I87fa5cb799c0b9367daad8c2cbb2b8c47f45fcfc
-<errors because you haven't added the right id_rsa>
-```
-(or whatever the current reviewers for test/mediawiki/extensions/examples are)
+The main algorithm for determining reviewers is the ReviewerFactory in
+add_reviewer.py. gerrit_rest.py contains basic functionality for accessing
+the Gerrit REST API. pop3bot.py reads Gerrit mails from a POP3 mailbox,
+retrieves the corresponding changes using the REST API, determines reviewers
+using the ReviewerFactory and finally adds reviewers via SSH.
 
+Changes in the ReviewerFactory can best be tested using test.py, as above. If
+more information is required from Gerrit, try to do this using options to the 
+/changes/ REST API.
 
+Usage/deployment
+----------------
+First, copy reviewer-bot's id_rsa and config.py to the working directory. Then:
 ``` bash
-python -c "import add_reviewer; add_reviewer.test_get_reviewers()"
+source bin/activate
+python pop3bot.py
 ```
 
-Expected output:
+Config.py is a simple file containing
+``` python
+username = 'gmailusername@gmail.com'
+password = 'whateveryourpasswordis'
 ```
-test/mediawiki/extensions/examples 0 ['Merlijn van Deen']
-test/mediawiki/extensions/examples 1 ['Merlijn van Deen']
-test/mediawiki/extensions/examples 2 ['Merlijn van Deen']
-test/mediawiki/extensions/examples 3 ['Merlijn van Deen']
-test/mediawiki/extensions/examples 4 ['Merlijn van Deen']
-```
-(again: or what the current reviewers are)
+(the gmail pop server is hard-coded at the moment)
 
-L10n-bot commits are filtered:
-``` bash
-$ cat l10n-test | python add_reviewer.py
-Skipping L10n patchset  41058
-```
+This will start a single run. Wrap it in a loop with a sleep or use cron to use it constantly.
 
-``` bash
-$ cat stream-bug-example | python add_reviewer.py
---------------------------------------------------------------------------------
-Exception KeyError('change',) caused by line:
---------------------------------------------------------------------------------
-{"type":"patchset-created"}
---------------------------------------------------------------------------------
-Traceback (most recent call last):
-  File "add_reviewer.py", line 110, in <module>
-    change = data['change']
-KeyError: 'change'
---------------------------------------------------------------------------------
-```
+
