@@ -50,7 +50,7 @@ class ReviewerFactory(object):
                 if sibling.tag == "h":
                     break
                 if sibling.tag == "template" and sibling.title == self.template:
-                    reviewer = None; modulo = 1; filere=self.nofilere
+                    reviewer = None; modulo = 1; filere=self.nofilere; matchall=False
                     for part in sibling.iter('part'):
                         if part.name == "" and part.name.attrib['index'] == '1':
                             reviewer = part.value.text
