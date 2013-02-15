@@ -52,7 +52,7 @@ def new_changeset_generator(mailbox):
             continue
         if mail.get('Gerrit-PatchSet', '') != '1':
             continue
-        matchingchange = get_changeset(mail['X-Gerrit-Change-Id'])
+        matchingchange = get_changeset(mail['X-Gerrit-Commit'])
         if matchingchange:
             yield matchingchange
 
@@ -93,6 +93,6 @@ if __name__ == "__main__":
 
     for j,changeset in enumerate(new_changeset_generator(mailbox)):
         reviewers = get_reviewers_for_changeset(changeset)
-        add_reviewers(changeset['change_id'], reviewers)
+        add_reviewers(changeset['current_revision'], reviewers)
 
     mailbox.quit()
