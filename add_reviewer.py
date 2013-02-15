@@ -61,7 +61,7 @@ class ReviewerFactory(object):
                         elif part.name == "file_regexp":
                             filere = re.compile(part.value.text or part.value.ext.inner.text, flags=re.DOTALL | re.IGNORECASE)
                         elif part.name == "match_all_files" or part.value.text == "match_all_files":
-                            matchall = true
+                            matchall = True
                     if matchall:
                         result = all(filere.search(file) for file in changedfiles)
                     else:
