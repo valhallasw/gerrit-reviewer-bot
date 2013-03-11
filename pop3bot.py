@@ -81,6 +81,10 @@ def get_reviewers_for_changeset(changeset):
     print "Processing changeset ", changeset['change_id'], changeset['subject'], 'by', owner
     print "  " + "\n  ".join(changedfiles)
 
+    if changeset['status'] in [u'ABANDONED', u'MERGED']:
+        print "Changeset was ", changeset['status'], "; not adding reviewers"
+        return []
+
     reviewers = filter_reviewers(RF.reviewer_generator(project, changedfiles), owner, number)
 
     return reviewers
