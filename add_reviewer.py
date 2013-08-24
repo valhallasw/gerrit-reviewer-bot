@@ -114,7 +114,7 @@ def add_reviewers(changeid, reviewers):
         params.append(changeid)
         command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
         print command
-        retval = subprocess.call(["ssh", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command])
+        retval = subprocess.call(["ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command])
         if retval != 0:
             raise Exception(command + ' was not executed successfully (code %i)' % retval)
 

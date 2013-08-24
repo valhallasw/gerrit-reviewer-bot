@@ -1,0 +1,17 @@
+#!/bin/bash
+cd $HOME/src/gerrit-reviewer-bot/src/
+git pull
+if [ ! -e pywikibot ]
+then
+  svn co http://svn.wikimedia.org/svnroot/pywikipedia/branches/rewrite/pywikibot
+fi
+
+export PYWIKIBOT2_DIR=$PWD
+while /bin/true
+do
+	echo ===== STARTING RUN AT `date`
+	../bin/python pop3bot.py
+	echo ===== RUN ENDED AT `date`
+        echo
+	sleep 300
+done

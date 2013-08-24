@@ -1,5 +1,7 @@
 import json, requests
 
+requests.adapters.DEFAULT_RETRIES = 5
+
 class GerritREST(object):
     def __init__(self, url):
         """ Basic wrapper around the Gerrit REST API. Takes care of

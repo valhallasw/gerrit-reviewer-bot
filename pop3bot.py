@@ -52,6 +52,7 @@ def new_changeset_generator(mailbox):
             continue
         if mail.get('Gerrit-PatchSet', '') != '1':
             continue
+        print "(getting ", mail['X-Gerrit-Commit'], ")"
         matchingchange = get_changeset(mail['X-Gerrit-Commit'])
         if matchingchange:
             yield matchingchange
@@ -95,8 +96,10 @@ if __name__ == "__main__":
 
     print "%i e-mails to process (%i kB)" % (nmails, octets/1024)
 
-    for j,changeset in enumerate(new_changeset_generator(mailbox)):
-        reviewers = get_reviewers_for_changeset(changeset)
-        add_reviewers(changeset['current_revision'], reviewers)
-
-    mailbox.quit()
+    try:
+        for j,changeset in enumerate(new_changeset_generator(mailbox)):
+            reviewers = get_reviewers_for_changeset(changeset)
+            add_reviewers(changeset['current_revision'], reviewers)
+    finally:
+        # flush succesfully processed emails
+        mailbox.quit()

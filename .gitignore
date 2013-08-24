@@ -3,3 +3,4 @@ pywikibot
 throttle.ctrl
 *.pyc
 apicache
+config.py
