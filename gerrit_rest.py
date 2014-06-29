@@ -13,7 +13,9 @@ class GerritREST(object):
         """
         self._url = url.rstrip('/')
         self._session = requests.Session()
-        self._session.headers.update({'Accept': 'application/json'})
+        self._session.headers.update({'Accept': 'application/json',
+                                      'User-Agent':\
+'Gerrit-Reviewer-Bot GerritREST python-requests/%s' % (requests.__version__)})
 
     def _request(self, name, **kwargs):
         """ Make a request. Parameters:
