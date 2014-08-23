@@ -9,6 +9,7 @@ import sys
 import time
 import logging
 logger = logging.getLogger('add_reviewers')
+from fnmatch import fnmatch
 
 sys.path.append('python-gerrit')
 g = None
@@ -46,7 +47,7 @@ class ReviewerFactory(object):
 
         for section in tree.iter('h'):
             name = section.text.strip('= ')
-            if (name != project) and (name != "*"):
+            if not fnmatch(project, name):
                 continue
             for sibling in section.itersiblings():
                 if sibling.tag == "h":
