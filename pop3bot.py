@@ -1,6 +1,8 @@
 import poplib
 import email.parser
 import config
+import logging
+logger = logging.getLogger('pop3bot')
 
 def mkmailbox(debug=0):
     username = config.username
@@ -59,15 +61,19 @@ def new_changeset_generator(mailbox):
 
 def filter_reviewers(reviewers, owner_name, changeset_number):
     if owner_name.lower() == u'l10n-bot':
+        logger.debug('Skipping l10n-bot')
         return
 
     i = 0
     for (reviewer, modulo) in reviewers:
         if reviewer.lower() == owner_name.lower():
+            logger.debug('Skipping owner %r' % reviewer)
             continue
 
         if ((changeset_number + i) % modulo == 0):
             yield reviewer
+        else:
+            logger.debug('Skipping %r due to modulo')
 
 from add_reviewer import ReviewerFactory, add_reviewers
 RF = ReviewerFactory()

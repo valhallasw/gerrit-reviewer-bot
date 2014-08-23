@@ -7,6 +7,8 @@ import re
 import traceback
 import sys
 import time
+import logging
+logger = logging.getLogger('add_reviewers')
 
 sys.path.append('python-gerrit')
 g = None
@@ -67,6 +69,8 @@ class ReviewerFactory(object):
                     else:
                         result = any(filere.search(file) for file in changedfiles)
                     if result:
+                        logger.debug('* MATCH in in section %r:' % name)
+                        logger.debug(lxml.objectify.dump(sibling))
                         yield reviewer, modulo
 
 
@@ -81,6 +85,8 @@ def get_reviewers(change, RF=ReviewerFactory()):
         for i, (reviewer, modulo) in enumerate(RF.reviewer_generator(change['project'], changedfiles)):
             if ((num + i) % modulo == 0):
                 reviewers.append(reviewer)
+            else:
+                logger.debug("NOT adding %r due to modulo match" % reviewer)
         return reviewers
 
 def test_get_reviewers():
