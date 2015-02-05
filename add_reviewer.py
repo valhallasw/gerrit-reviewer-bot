@@ -42,7 +42,7 @@ class ReviewerFactory(object):
         except Exception, e:
             return default
 
-    def reviewer_generator(self, project, changedfiles):
+    def reviewer_generator(self, project, changedfiles, addedfiles=[]):
         tree = self.objecttree
 
         for section in tree.iter('h'):
@@ -65,6 +65,8 @@ class ReviewerFactory(object):
                             filere = re.compile(part.value.text or part.value.ext.inner.text, flags=re.DOTALL | re.IGNORECASE)
                         elif part.name == "match_all_files" or part.value.text == "match_all_files":
                             matchall = True
+                        elif part.name == "only_match_new_files" or part.value.text == "only_match_new_files":
+                            changedfiles = addedfiles
                     if matchall:
                         result = all(filere.search(file) for file in changedfiles)
                     else:

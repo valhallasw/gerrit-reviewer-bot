@@ -80,7 +80,11 @@ RF = ReviewerFactory()
 
 def get_reviewers_for_changeset(changeset):
     owner = changeset['owner']['name']
-    changedfiles = changeset['revisions'].values()[0]['files'].keys()
+
+    changes = changeset['revisions'].values()[0]['files']
+    changedfiles = [k for (k,v) in changes.items()]
+    addedfiles = [k for (k,v) in changes.items() if v['status'] == 'A']
+
     project = changeset['project']
     number = changeset['_number']
 
@@ -92,7 +96,7 @@ def get_reviewers_for_changeset(changeset):
         print "Changeset was ", changeset['status'], "; not adding reviewers"
         return []
 
-    reviewers = filter_reviewers(RF.reviewer_generator(project, changedfiles), owner, number)
+    reviewers = filter_reviewers(RF.reviewer_generator(project, changedfiles, addedfiles), owner, number)
 
     return reviewers
 
