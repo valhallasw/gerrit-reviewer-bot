@@ -41,7 +41,7 @@ def gerritmail_generator(mailbox):
 import gerrit_rest
 g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
 
-def get_changeset(changeid, o=['CURRENT_REVISION', 'CURRENT_FILES']):
+def get_changeset(changeid, o=['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_ACCOUNTS']):
         matchingchanges = g.changes(changeid, n=1, o=o)
         if matchingchanges:
             return matchingchanges[0]
