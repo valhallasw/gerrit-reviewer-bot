@@ -1,6 +1,6 @@
 Gerrit reviewer bot for WMF's Gerrit.
 
-This bot reads reviewers from http://www.mediawiki.org/wiki/Git/Reviewers and adds them to changes in Gerrit.
+This bot reads reviewers from https://www.mediawiki.org/wiki/Git/Reviewers and adds them to changes in Gerrit.
 
 Changes are read from SSH ('add_reviewers.py') or POP3 ('pop3bot.py').
 
@@ -13,7 +13,8 @@ source bin/activate
 git clone http://github.com/valhallasw/gerrit-reviewer-bot src
 cd src
 pip install -r requirements
-svn co http://svn.wikimedia.org/svnroot/pywikipedia/branches/rewrite/pywikibot
+git clone https://gerrit.wikimedia.org/r/pywikibot/core pywikibot
+cd pywikibot && git checkout 2.0
 ```
 
 Then, to test:
