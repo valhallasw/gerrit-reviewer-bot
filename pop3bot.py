@@ -83,14 +83,23 @@ def get_reviewers_for_changeset(changeset):
 
     changes = changeset['revisions'].values()[0]['files']
     changedfiles = [k for (k,v) in changes.items()]
-    addedfiles = [k for (k,v) in changes.items() if v['status'] == 'A']
+    try:
+        addedfiles = [k for (k,v) in changes.items() if 'status' in v and v['status'] == 'A']
+    except Exception, e:
+        print e, repr(changes.items())
+        addedfiles = []
 
     project = changeset['project']
     number = changeset['_number']
 
     print ""
     print "Processing changeset ", changeset['change_id'], changeset['subject'], 'by', owner
-    print "  " + "\n  ".join(changedfiles)
+    for f in changedfiles:
+        if f in addedfiles:
+            print "A",
+        else:
+            print "u",
+        print f
 
     if changeset['status'] in [u'ABANDONED', u'MERGED']:
         print "Changeset was ", changeset['status'], "; not adding reviewers"

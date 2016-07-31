@@ -66,6 +66,7 @@ class ReviewerFactory(object):
                         elif part.name == "match_all_files" or part.value.text == "match_all_files":
                             matchall = True
                         elif part.name == "only_match_new_files" or part.value.text == "only_match_new_files":
+                            logger.info("%r:%r -> only checking new files" % (name, reviewer))
                             changedfiles = addedfiles
                     if matchall:
                         result = all(filere.search(file) for file in changedfiles)
