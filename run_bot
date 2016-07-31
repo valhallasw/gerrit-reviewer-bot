@@ -1,7 +1,8 @@
 #!/bin/bash
 if [ ! -e pywikibot ]
 then
-  git clone https://gerrit.wikimedia.org/r/pywikibot/core
+  git clone https://gerrit.wikimedia.org/r/pywikibot/core pywikibot
+  (cd pywikibot && git checkout 2.0)
 fi
 if [ ! -e python-gerrit ]
 then
