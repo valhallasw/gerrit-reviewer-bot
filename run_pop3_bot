@@ -3,7 +3,7 @@ cd $HOME/src/gerrit-reviewer-bot/src/
 git pull
 if [ ! -e pywikibot ]
 then
-  git clone https://gerrit.wikimedia.org/r/pywikibot/core
+  git clone https://gerrit.wikimedia.org/r/pywikibot/core pywikibot
 fi
 
 export PYWIKIBOT2_DIR=$PWD
