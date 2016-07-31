@@ -1,5 +1,8 @@
 #!/bin/bash
-cd $HOME/src/gerrit-reviewer-bot/src/
+
+# You probably want to use $HOME/gerrit_reviewer_bot.sh instead!
+
+cd $HOME/src/gerrit-reviewer-bot/
 git pull
 if [ ! -e pywikibot ]
 then
@@ -11,7 +14,7 @@ export PYWIKIBOT2_DIR=$PWD
 while /bin/true
 do
 	echo ===== STARTING RUN AT `date`
-	../bin/python pop3bot.py
+	$HOME/venv/bin/python pop3bot.py
 	echo ===== RUN ENDED AT `date`
         echo
 	sleep 300
