@@ -30,7 +30,7 @@ class ReviewerFactory(object):
     def data(self):
         if hasattr(self, '_data'):
             return self._data
-        return pywikibot.data.api.Request(action="parse", page=self.page, generatexml=True, site=self.site).submit()
+        return pywikibot.data.api.Request(action="parse", page=self.page, prop='parsetree', site=self.site).submit()
 
     @property
     def objecttree(self):
