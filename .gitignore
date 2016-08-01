@@ -1,5 +1,4 @@
 id_rsa
-pywikibot
 throttle.ctrl
 *.pyc
 apicache

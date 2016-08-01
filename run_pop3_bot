@@ -4,10 +4,11 @@
 
 cd $HOME/src/gerrit-reviewer-bot/
 git pull
-if [ ! -e pywikibot ]
+if [ ! -e ../pywikibot ]
 then
-  git clone https://gerrit.wikimedia.org/r/pywikibot/core pywikibot
-  (cd pywikibot && git checkout 2.0)
+  (cd ..;
+  git clone https://gerrit.wikimedia.org/r/pywikibot/core pywikibot;
+  (cd pywikibot && git checkout 2.0))
 fi
 
 export PYWIKIBOT2_DIR=$PWD
