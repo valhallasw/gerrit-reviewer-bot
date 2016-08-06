@@ -30,7 +30,15 @@ def message_generator(mailbox):
     p = email.parser.Parser()
     for mail in mail_generator(mailbox):
         mail = p.parsestr(mail)
-        yield mail, mail.get_payload(decode=True)
+        # if mail is multipart-mime (probably not from gerrit)
+        # mail.get_payload() is a list rather than a string
+        # and mail.get_payload(decode=True) returns None
+
+        m = mail
+        while isinstance(m.get_payload(), list):
+            m = m.get_payload()[0]
+
+        yield mail, m.get_payload(decode=True)
 
 def gerritmail_generator(mailbox):
     for message, contents in message_generator(mailbox):
