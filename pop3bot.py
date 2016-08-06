@@ -21,7 +21,9 @@ def mail_generator(mailbox):
         and DELEtes them before the next mail is RETRieved """
     nmails, octets = mailbox.stat()
     for i in range(1,nmails+1):
-        yield "\n".join(mailbox.retr(i)[1])
+        # use TOP rather than REPR; gmail (sometimes?) interprets REPR'd
+        # messages as read and does not report them again (sigh)
+        yield "\n".join(mailbox.top(i, 1000)[1])
         mailbox.dele(i)
 
 def message_generator(mailbox):
