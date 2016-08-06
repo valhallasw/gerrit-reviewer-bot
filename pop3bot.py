@@ -42,11 +42,20 @@ def message_generator(mailbox):
 
 def gerritmail_generator(mailbox):
     for message, contents in message_generator(mailbox):
+        mi = dict(message.items())
+        subject = mi.get('Subject', 'Unknown')
+        sender = mi.get('From', 'Unknown')
+
         gerrit_data = dict((k,v) for (k,v) in message.items() if k.startswith('X-Gerrit'))
         gerrit_data.update(dict(line.split(": ", 1) for line in contents.split('\n') if (line.startswith("Gerrit-") and ": " in line)))
 
+        print subject, sender, gerrit_data.get('X-Gerrit-Change-Id')
+
         if gerrit_data:
             yield gerrit_data
+        else:
+            print "Skipping; Contents: "
+            print contents
 
 import gerrit_rest
 g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
