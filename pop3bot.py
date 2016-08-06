@@ -128,7 +128,7 @@ def get_reviewers_for_changeset(changeset):
 
     return reviewers
 
-if __name__ == "__main__":
+def main():
     mailbox = mkmailbox(0)
     nmails, octets = mailbox.stat()
 
@@ -141,3 +141,6 @@ if __name__ == "__main__":
     finally:
         # flush succesfully processed emails
         mailbox.quit()
+
+if __name__ == "__main__":
+    main()
