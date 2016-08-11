@@ -69,14 +69,22 @@ def get_changeset(changeid, o=['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_AC
 
 def new_changeset_generator(mailbox):
     for mail in gerritmail_generator(mailbox):
-        if mail.get('X-Gerrit-MessageType', '') != 'newchange':
+        mt = mail.get('X-Gerrit-MessageType', '')
+        ps = mail.get('Gerrit-PatchSet', '')
+        commit = mail['X-Gerrit-Commit']
+
+        if mt != 'newchange':
+            print "skipping message (%s)" % mt
             continue
-        if mail.get('Gerrit-PatchSet', '') != '1':
+        if ps != '1':
+            print "skipping PS%s" % ps
             continue
-        print "(getting ", mail['X-Gerrit-Commit'], ")"
-        matchingchange = get_changeset(mail['X-Gerrit-Commit'])
+        print "(getting ", commit, ")"
+        matchingchange = get_changeset(commit)
         if matchingchange:
             yield matchingchange
+        else:
+            print "Could not find matching change for %s" % commit
 
 def filter_reviewers(reviewers, owner_name, changeset_number):
     if owner_name.lower() == u'l10n-bot':
