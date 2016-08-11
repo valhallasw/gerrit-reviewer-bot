@@ -16,6 +16,10 @@ g = None
 
 site = pywikibot.getSite('mediawiki', 'mediawiki')
 
+def call_utf8(command, *args, **kwargs):
+    command = [part.encode('utf-8') for part in command]
+    return subprocess.call(command, *args, **kwargs)
+
 class ReviewerFactory(object):
     nofilere = re.compile('')
 
@@ -125,10 +129,10 @@ def add_reviewers(changeid, reviewers):
         command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
         print command
         callcmd = ["ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command]
-        retval = subprocess.call(callcmd)
+        retval = call_utf8(callcmd)
         if retval != 0:
             with open('debug.out', 'a') as fp:
-                retval = subprocess.call(
+                retval = call_utf8(
                     [callcmd[0]] + ["-v", "-v"] + callcmd[1:],
                     stdout = fp,
                     stderr = subprocess.STDOUT)
@@ -167,7 +171,7 @@ if __name__ == "__main__":
                 params.append(change['id'])
                 command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
                 print command
-                print subprocess.call(["ssh", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command])
+                print call_utf8(["ssh", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command])
         except Exception, e:
             print "-"*80
             print "Exception %r caused by line:" % e
