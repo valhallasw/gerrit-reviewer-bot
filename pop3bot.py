@@ -70,13 +70,17 @@ def get_changeset(changeid, o=['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_AC
 def new_changeset_generator(mailbox):
     for mail in gerritmail_generator(mailbox):
         mt = mail.get('X-Gerrit-MessageType', '')
+        d = mail.get('Gerrit-DraftSet', '')
         ps = mail.get('Gerrit-PatchSet', '')
         commit = mail['X-Gerrit-Commit']
 
         if mt != 'newchange':
             print "skipping message (%s)" % mt
             continue
-        if ps != '1':
+        if d != '1':
+            print "skipping Draft%s" % ps
+            continue
+        elif ps != '1':
             print "skipping PS%s" % ps
             continue
         print "(getting ", commit, ")"
