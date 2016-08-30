@@ -146,11 +146,16 @@ if __name__ == "__main__":
             break
         try:
             data = json.loads(line)
-            if data['type'] != 'patchset-created':
+            if data['type'] != 'draftset-created':
+                continue
+            elif data['type'] != 'patchset-created':
                 continue
             change = data['change']
             patchset = data['patchSet']
-            if int(patchset['number']) != 1:
+            draftset = data['draftSet']
+            if int(draftset['number']) != 1:
+                continue
+            elif int(patchset['number']) != 1:
                 continue
 
             owner = change['owner']['name'].lower()
