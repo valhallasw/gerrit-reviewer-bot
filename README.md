@@ -1,10 +1,10 @@
 Gerrit reviewer bot for WMF's Gerrit.
 
-This bot reads reviewers from https://www.mediawiki.org/wiki/Git/Reviewers and adds them to changes in Gerrit.
+This bot reads reviewers from https://www.mediawiki.org/wiki/Git/Reviewers and
+adds them to changes in Gerrit.
 
 Changes are read from SSH ('add_reviewers.py') or POP3 ('pop3bot.py').
 
-__fdsa_
 Development
 -----------
 ``` bash
@@ -32,7 +32,7 @@ retrieves the corresponding changes using the REST API, determines reviewers
 using the ReviewerFactory and finally adds reviewers via SSH.
 
 Changes in the ReviewerFactory can best be tested using test.py, as above. If
-more information is required from Gerrit, try to do this using options to the 
+more information is required from Gerrit, try to do this using options to the
 /changes/ REST API.
 
 Usage/deployment
