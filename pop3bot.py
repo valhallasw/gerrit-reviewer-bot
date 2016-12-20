@@ -145,7 +145,7 @@ def main():
     try:
         for j,changeset in enumerate(new_changeset_generator(mailbox)):
             reviewers = get_reviewers_for_changeset(changeset)
-            add_reviewers(changeset['change_id'], reviewers)
+            add_reviewers(changeset['id'], reviewers)
     finally:
         # flush succesfully processed emails
         mailbox.quit()
