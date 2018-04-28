@@ -66,7 +66,10 @@ class ReviewerFactory(object):
                             if modulo < 2:
                                 modulo = 1
                         elif part.name == "file_regexp":
-                            filere = re.compile(part.value.text or part.value.ext.inner.text, flags=re.DOTALL | re.IGNORECASE)
+                            try:
+                                filere = re.compile(part.value.text or part.value.ext.inner.text, flags=re.DOTALL | re.IGNORECASE)
+                            except re.error as e:
+                                logging.error("Could not process file regexp %r -- ignoring." % (part.value.text or part.value.ext.inner.text))
                         elif part.name == "match_all_files" or part.value.text == "match_all_files":
                             matchall = True
                         elif part.name == "only_match_new_files" or part.value.text == "only_match_new_files":
