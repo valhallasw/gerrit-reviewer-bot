@@ -1,7 +1,9 @@
+import sys
 import poplib
 import email.parser
 import config
 import logging
+import traceback
 logger = logging.getLogger('pop3bot')
 
 def mkmailbox(debug=0):
@@ -108,13 +110,13 @@ RF = ReviewerFactory()
 def get_reviewers_for_changeset(changeset):
     owner = changeset['owner']['name']
 
-    changes = changeset['revisions'].values()[0]['files']
-    changedfiles = [k for (k,v) in changes.items()]
     try:
+        changes = changeset['revisions'].values()[0]['files']
+        changedfiles = [k for (k,v) in changes.items()]
         addedfiles = [k for (k,v) in changes.items() if 'status' in v and v['status'] == 'A']
     except Exception, e:
-        print e, repr(changes.items())
-        addedfiles = []
+        print e, repr(changeset)
+        changedfiles = addedfiles = []
 
     project = changeset['project']
     number = changeset['_number']
@@ -144,8 +146,14 @@ def main():
 
     try:
         for j,changeset in enumerate(new_changeset_generator(mailbox)):
-            reviewers = get_reviewers_for_changeset(changeset)
-            add_reviewers(changeset['id'], reviewers)
+            try:
+                reviewers = get_reviewers_for_changeset(changeset)
+                add_reviewers(changeset['id'], reviewers)
+            except Exception as e:
+                sys.stdout.write(repr(changeset) + "\n caused exception:")
+                traceback.print_exc()
+                sys.stderr.write(repr(changeset) + "\n caused exception:")
+                raise
     finally:
         # flush succesfully processed emails
         mailbox.quit()
