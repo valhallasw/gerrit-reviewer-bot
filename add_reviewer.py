@@ -43,7 +43,7 @@ class ReviewerFactory(object):
     def _tryParseInt(self, value, default=None):
         try:
             return int(value)
-        except Exception, e:
+        except Exception as e:
             return default
 
     def reviewer_generator(self, project, changedfiles, addedfiles=[]):
@@ -90,8 +90,8 @@ def get_reviewers(change, RF=ReviewerFactory()):
         reviewers = []
         try:
             changedfiles = [p.path for p in g.change_details(num).last_patchset_details.patches]
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             changedfiles = []
         for i, (reviewer, modulo) in enumerate(RF.reviewer_generator(change['project'], changedfiles)):
             if ((num + i) % modulo == 0):
@@ -119,7 +119,7 @@ def test_get_reviewers():
     for i in [40978, 40976, 40975, 34673]:
         change = {'number': i, 'project': name}
         revs = get_reviewers(change, RF)
-        print name, i, revs
+        print(name, i, revs)
 
 def add_reviewers(changeid, reviewers):
     reviewers = list(reviewers)
@@ -130,7 +130,7 @@ def add_reviewers(changeid, reviewers):
             params.append(reviewer)
         params.append(changeid)
         command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
-        print command
+        print(command)
         callcmd = ["ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command]
         retval = call_utf8(callcmd)
         if retval != 0:
@@ -158,12 +158,12 @@ if __name__ == "__main__":
 
             owner = change['owner']['name'].lower()
             if owner == 'l10n-bot':
-                print "Skipping L10n patchset ", change['number']
+                print("Skipping L10n patchset ", change['number'])
                 continue
 
             reviewers = [r.lower() for r in get_reviewers(change)]
             if owner in reviewers:
-                print "Removing owner %s from reviewer list %r" % (owner, reviewers)
+                print("Removing owner %s from reviewer list %r" % (owner, reviewers))
                 reviewers.remove(owner)
 
             if reviewers:
@@ -173,14 +173,14 @@ if __name__ == "__main__":
                     params.append(reviewer)
                 params.append(change['id'])
                 command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
-                print command
-                print call_utf8(["ssh", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command])
-        except Exception, e:
-            print "-"*80
-            print "Exception %r caused by line:" % e
-            print "-"*80
-            print line,
-            print "-"*80
+                print(command)
+                print(call_utf8(["ssh", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command]))
+        except Exception as e:
+            print("-"*80)
+            print("Exception %r caused by line:" % e)
+            print("-"*80)
+            print(line, end=' ')
+            print("-"*80)
             traceback.print_exc()
-            print "-"*80
+            print("-"*80)
             time.sleep(3)

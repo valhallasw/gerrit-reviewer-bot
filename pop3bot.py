@@ -44,20 +44,20 @@ def message_generator(mailbox):
 
 def gerritmail_generator(mailbox):
     for message, contents in message_generator(mailbox):
-        mi = dict(message.items())
+        mi = dict(list(message.items()))
         subject = mi.get('Subject', 'Unknown')
         sender = mi.get('From', 'Unknown')
 
-        gerrit_data = dict((k,v) for (k,v) in message.items() if k.startswith('X-Gerrit'))
+        gerrit_data = dict((k,v) for (k,v) in list(message.items()) if k.startswith('X-Gerrit'))
         gerrit_data.update(dict(line.split(": ", 1) for line in contents.split('\n') if (line.startswith("Gerrit-") and ": " in line)))
 
-        print subject, sender, gerrit_data.get('X-Gerrit-Change-Id')
+        print(subject, sender, gerrit_data.get('X-Gerrit-Change-Id'))
 
         if gerrit_data:
             yield gerrit_data
         else:
-            print "Skipping; Contents: "
-            print contents
+            print("Skipping; Contents: ")
+            print(contents)
 
 import gerrit_rest
 g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
@@ -76,20 +76,20 @@ def new_changeset_generator(mailbox):
         commit = mail['X-Gerrit-Commit']
 
         if mt != 'newchange':
-            print "skipping message (%s)" % mt
+            print("skipping message (%s)" % mt)
             continue
         if ps != '1':
-            print "skipping PS%s" % ps
+            print("skipping PS%s" % ps)
             continue
-        print "(getting ", commit, ")"
+        print("(getting ", commit, ")")
         matchingchange = get_changeset(commit)
         if matchingchange:
             yield matchingchange
         else:
-            print "Could not find matching change for %s" % commit
+            print("Could not find matching change for %s" % commit)
 
 def filter_reviewers(reviewers, owner_name, changeset_number):
-    if owner_name.lower() == u'l10n-bot':
+    if owner_name.lower() == 'l10n-bot':
         logger.debug('Skipping l10n-bot')
         return
 
@@ -111,27 +111,27 @@ def get_reviewers_for_changeset(changeset):
     owner = changeset['owner']['name']
 
     try:
-        changes = changeset['revisions'].values()[0]['files']
-        changedfiles = [k for (k,v) in changes.items()]
-        addedfiles = [k for (k,v) in changes.items() if 'status' in v and v['status'] == 'A']
-    except Exception, e:
-        print e, repr(changeset)
+        changes = list(changeset['revisions'].values())[0]['files']
+        changedfiles = [k for (k,v) in list(changes.items())]
+        addedfiles = [k for (k,v) in list(changes.items()) if 'status' in v and v['status'] == 'A']
+    except Exception as e:
+        print(e, repr(changeset))
         changedfiles = addedfiles = []
 
     project = changeset['project']
     number = changeset['_number']
 
-    print ""
-    print "Processing changeset ", changeset['change_id'], changeset['subject'], 'by', owner
+    print("")
+    print("Processing changeset ", changeset['change_id'], changeset['subject'], 'by', owner)
     for f in changedfiles:
         if f in addedfiles:
-            print "A",
+            print("A", end=' ')
         else:
-            print "u",
-        print f
+            print("u", end=' ')
+        print(f)
 
-    if changeset['status'] in [u'ABANDONED', u'MERGED']:
-        print "Changeset was ", changeset['status'], "; not adding reviewers"
+    if changeset['status'] in ['ABANDONED', 'MERGED']:
+        print("Changeset was ", changeset['status'], "; not adding reviewers")
         return []
 
     reviewers = filter_reviewers(RF.reviewer_generator(project, changedfiles, addedfiles), owner, number)
@@ -142,7 +142,7 @@ def main():
     mailbox = mkmailbox(0)
     nmails, octets = mailbox.stat()
 
-    print "%i e-mails to process (%i kB)" % (nmails, octets/1024)
+    print("%i e-mails to process (%i kB)" % (nmails, octets/1024))
 
     try:
         for j,changeset in enumerate(new_changeset_generator(mailbox)):
