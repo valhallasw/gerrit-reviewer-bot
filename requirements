@@ -1,3 +1,0 @@
-lxml
-requests[security]>=1.0
-httplib2

@@ -1,20 +1,16 @@
-import sys, json
-from pipes import quote
+import json
 import subprocess
-import pywikibot
-import lxml.objectify
 import re
-import traceback
-import sys
-import time
 import logging
-logger = logging.getLogger('add_reviewers')
+from pipes import quote
 from fnmatch import fnmatch
+logger = logging.getLogger('add_reviewers')
 
-sys.path.append('python-gerrit')
-g = None
+import requests
+import lxml.objectify
 
-site = pywikibot.getSite('mediawiki', 'mediawiki')
+import gerrit_rest
+g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
 
 def call_utf8(command, *args, **kwargs):
     command = [part.encode('utf-8') for part in command]
@@ -23,10 +19,7 @@ def call_utf8(command, *args, **kwargs):
 class ReviewerFactory(object):
     nofilere = re.compile('')
 
-    def __init__(self, site=pywikibot.getSite('mediawiki', 'mediawiki'),
-                       page="Git/Reviewers",
-                       template="Gerrit-reviewer"):
-        self.site = site
+    def __init__(self, page="Git/Reviewers", template="Gerrit-reviewer"):
         self.page = page
         self.template = template
 
@@ -34,7 +27,7 @@ class ReviewerFactory(object):
     def data(self):
         if hasattr(self, '_data'):
             return self._data
-        return pywikibot.data.api.Request(action="parse", page=self.page, prop='parsetree', site=self.site).submit()
+        return requests.get("https://www.mediawiki.org/w/api.php?format=json&action=parse&page=Git/Reviewers&prop=parsetree").json()
 
     @property
     def objecttree(self):
@@ -46,7 +39,7 @@ class ReviewerFactory(object):
         except Exception as e:
             return default
 
-    def reviewer_generator(self, project, changedfiles, addedfiles=[]):
+    def _reviewer_generator(self, project, changedfiles, addedfiles=[]):
         tree = self.objecttree
 
         for section in tree.iter('h'):
@@ -84,20 +77,51 @@ class ReviewerFactory(object):
                         logger.debug(lxml.objectify.dump(sibling))
                         yield reviewer, modulo
 
+    def _filter_reviewers(self, reviewers, owner_name, changeset_number):
+        if owner_name.lower() == 'l10n-bot':
+            logger.debug('Skipping l10n-bot')
+            return
 
-def get_reviewers(change, RF=ReviewerFactory()):
-        num = int(change['number'])
-        reviewers = []
-        try:
-            changedfiles = [p.path for p in g.change_details(num).last_patchset_details.patches]
-        except Exception as e:
-            print(e)
-            changedfiles = []
-        for i, (reviewer, modulo) in enumerate(RF.reviewer_generator(change['project'], changedfiles)):
-            if ((num + i) % modulo == 0):
-                reviewers.append(reviewer)
+        i = 0
+        for (reviewer, modulo) in reviewers:
+            if reviewer.lower() == owner_name.lower():
+                logger.debug('Skipping owner %r' % reviewer)
+                continue
+
+            if ((changeset_number + i) % modulo == 0):
+                yield reviewer
             else:
-                logger.debug("NOT adding %r due to modulo match" % reviewer)
+                logger.debug('Skipping %r due to modulo')
+
+    def get_reviewers_for_changeset(self, changeset):
+        owner = changeset['owner']['name']
+
+        try:
+            changes = list(changeset['revisions'].values())[0]['files']
+            changedfiles = [k for (k, v) in list(changes.items())]
+            addedfiles = [k for (k, v) in list(changes.items()) if 'status' in v and v['status'] == 'A']
+        except Exception as e:
+            print(e, repr(changeset))
+            changedfiles = addedfiles = []
+
+        project = changeset['project']
+        number = changeset['_number']
+
+        print("")
+        print("Processing changeset ", changeset['change_id'], changeset['subject'], 'by', owner)
+        for f in changedfiles:
+            if f in addedfiles:
+                print("A", end=' ')
+            else:
+                print("u", end=' ')
+            print(f)
+
+        if changeset['status'] in ['ABANDONED', 'MERGED']:
+            print("Changeset was ", changeset['status'], "; not adding reviewers")
+            return []
+
+        reviewers = self._filter_reviewers(self._reviewer_generator(project, changedfiles, addedfiles), owner, number)
+
         return reviewers
 
 def test_get_reviewers():
@@ -106,13 +130,15 @@ def test_get_reviewers():
     name = 'test/mediawiki/extensions/examples'
 
     for i in [40978, 40976, 40975]:
-        change = {'number': i, 'project': name}
-        revs = get_reviewers(change, RF)
+        revs = RF.get_reviewers_for_changeset(g.get_changeset(i))
+
         for rev in revs:
             assert isinstance(rev, str)
         if i % 5 == 0:
+            print(revs)
             assert revs == ["Merlijn van Deen", "Sumanah"]
         else:
+            print(revs)
             assert revs == ["Sumanah"]
 
     RF = ReviewerFactory()
@@ -142,45 +168,4 @@ def add_reviewers(changeid, reviewers):
             raise Exception(command + ' was not executed successfully (code %i)' % retval)
 
 if __name__ == "__main__":
-    from gerrit.rpc import Client; g=Client('https://gerrit.wikimedia.org/r/', 'gerrit_ui/rpc');
-    while True:
-        line = sys.stdin.readline()
-        if not line:
-            break
-        try:
-            data = json.loads(line)
-            if data['type'] != 'patchset-created':
-                continue
-            change = data['change']
-            patchset = data['patchSet']
-            if int(patchset['number']) != 1:
-                continue
-
-            owner = change['owner']['name'].lower()
-            if owner == 'l10n-bot':
-                print("Skipping L10n patchset ", change['number'])
-                continue
-
-            reviewers = [r.lower() for r in get_reviewers(change)]
-            if owner in reviewers:
-                print("Removing owner %s from reviewer list %r" % (owner, reviewers))
-                reviewers.remove(owner)
-
-            if reviewers:
-                params = []
-                for reviewer in reviewers:
-                    params.append('--add')
-                    params.append(reviewer)
-                params.append(change['id'])
-                command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
-                print(command)
-                print(call_utf8(["ssh", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command]))
-        except Exception as e:
-            print("-"*80)
-            print("Exception %r caused by line:" % e)
-            print("-"*80)
-            print(line, end=' ')
-            print("-"*80)
-            traceback.print_exc()
-            print("-"*80)
-            time.sleep(3)
+    test_get_reviewers()

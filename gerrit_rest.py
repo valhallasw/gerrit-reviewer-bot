@@ -44,4 +44,11 @@ class GerritREST(object):
 
         return self._request('changes', q=q, n=n, o=o)
 
+    def get_changeset(this, changeid, o=['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_ACCOUNTS']):
+        matchingchanges = this.changes(changeid, n=1, o=o)
+        if matchingchanges:
+            return matchingchanges[0]
+        else:
+            return None
+
     # def accounts, def groups, def projects, etc.
