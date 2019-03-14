@@ -4,7 +4,12 @@ import email.parser
 import config
 import logging
 import traceback
+
+import gerrit_rest
+from add_reviewer import ReviewerFactory, add_reviewers
+
 logger = logging.getLogger('pop3bot')
+g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
 
 def mkmailbox(debug=0):
     username = config.username
@@ -18,6 +23,7 @@ def mkmailbox(debug=0):
 
     return mailbox
 
+
 def mail_generator(mailbox):
     """ RETRieves the contents of mails, yields those
         and DELEtes them before the next mail is RETRieved """
@@ -27,6 +33,7 @@ def mail_generator(mailbox):
         # messages as read and does not report them again (sigh)
         yield "\n".join(mailbox.top(i, 1000)[1])
         mailbox.dele(i)
+
 
 def message_generator(mailbox):
     p = email.parser.Parser()
@@ -41,6 +48,7 @@ def message_generator(mailbox):
             m = m.get_payload()[0]
 
         yield mail, m.get_payload(decode=True)
+
 
 def gerritmail_generator(mailbox):
     for message, contents in message_generator(mailbox):
@@ -59,8 +67,6 @@ def gerritmail_generator(mailbox):
             print("Skipping; Contents: ")
             print(contents)
 
-import gerrit_rest
-g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
 
 def new_changeset_generator(mailbox):
     for mail in gerritmail_generator(mailbox):
@@ -81,21 +87,20 @@ def new_changeset_generator(mailbox):
         else:
             print("Could not find matching change for %s" % commit)
 
-from add_reviewer import ReviewerFactory, add_reviewers
-RF = ReviewerFactory()
 
 def main():
+    RF = ReviewerFactory()
     mailbox = mkmailbox(0)
     nmails, octets = mailbox.stat()
 
     print("%i e-mails to process (%i kB)" % (nmails, octets/1024))
 
     try:
-        for j,changeset in enumerate(new_changeset_generator(mailbox)):
+        for j, changeset in enumerate(new_changeset_generator(mailbox)):
             try:
                 reviewers = RF.get_reviewers_for_changeset(changeset)
                 add_reviewers(changeset['id'], reviewers)
-            except Exception as e:
+            except Exception:
                 sys.stdout.write(repr(changeset) + "\n caused exception:")
                 traceback.print_exc()
                 sys.stderr.write(repr(changeset) + "\n caused exception:")
@@ -103,6 +108,7 @@ def main():
     finally:
         # flush succesfully processed emails
         mailbox.quit()
+
 
 if __name__ == "__main__":
     main()

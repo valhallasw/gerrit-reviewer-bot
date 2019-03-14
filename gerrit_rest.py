@@ -2,6 +2,7 @@ import json, requests
 
 requests.adapters.DEFAULT_RETRIES = 5
 
+
 class GerritREST(object):
     def __init__(self, url):
         """ Basic wrapper around the Gerrit REST API. Takes care of
@@ -13,9 +14,10 @@ class GerritREST(object):
         """
         self._url = url.rstrip('/')
         self._session = requests.Session()
-        self._session.headers.update({'Accept': 'application/json',
-                                      'User-Agent':\
-'Gerrit-Reviewer-Bot GerritREST python-requests/%s' % (requests.__version__)})
+        self._session.headers.update({
+            'Accept': 'application/json',
+            'User-Agent': 'Gerrit-Reviewer-Bot GerritREST python-requests/%s' % (requests.__version__, )
+        })
 
     def _request(self, name, **kwargs):
         """ Make a request. Parameters:
@@ -44,11 +46,9 @@ class GerritREST(object):
 
         return self._request('changes', q=q, n=n, o=o)
 
-    def get_changeset(this, changeid, o=['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_ACCOUNTS']):
-        matchingchanges = this.changes(changeid, n=1, o=o)
+    def get_changeset(self, changeid, o=['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_ACCOUNTS']):
+        matchingchanges = self.changes(changeid, n=1, o=o)
         if matchingchanges:
             return matchingchanges[0]
         else:
             return None
-
-    # def accounts, def groups, def projects, etc.
