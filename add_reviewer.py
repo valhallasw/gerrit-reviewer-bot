@@ -1,4 +1,3 @@
-import json
 import subprocess
 import re
 import logging
@@ -8,7 +7,6 @@ from fnmatch import fnmatch
 import requests
 import lxml.objectify
 
-import gerrit_rest
 
 logger = logging.getLogger('add_reviewers')
 
@@ -145,31 +143,3 @@ def add_reviewers(changeid, reviewers):
                     stdout = fp,
                     stderr = subprocess.STDOUT)
             raise Exception(command + ' was not executed successfully (code %i)' % retval)
-
-
-def test_get_reviewers():
-    g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
-    RF = ReviewerFactory()
-    RF._data = json.load(open("api_result"))
-    name = 'test/mediawiki/extensions/examples'
-
-    for i in [40978, 40976, 40975]:
-        revs = RF.get_reviewers_for_changeset(g.get_changeset(i))
-
-        for rev in revs:
-            assert isinstance(rev, str)
-        if i % 5 == 0:
-            print(revs)
-            assert revs == ["Merlijn van Deen", "Sumanah"]
-        else:
-            print(revs)
-            assert revs == ["Sumanah"]
-
-    RF = ReviewerFactory()
-    for i in [40978, 40976, 40975, 34673]:
-        revs = RF.get_reviewers_for_changeset(g.get_changeset(i))
-        print(name, i, revs)
-
-
-if __name__ == "__main__":
-    test_get_reviewers()
