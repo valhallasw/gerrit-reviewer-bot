@@ -1,0 +1,20 @@
+X-Received: by 2002:a67:f054:: with SMTP id q20mr5254056vsm.14.1552770724944;
+ Sat, 16 Mar 2019 14:12:04 -0700 (PDT)
+MIME-Version: 1.0
+Date: Sat, 16 Mar 2019 22:11:53 +0100
+Subject: test
+From: "Merlijn van Deen (valhallasw)" <valhallasw@arctus.nl>
+Content-Type: multipart/alternative; boundary="0000000000007a743b05843c9b06"
+
+--0000000000007a743b05843c9b06
+Content-Type: text/plain; charset="UTF-8"
+
+woei
+
+--0000000000007a743b05843c9b06
+Content-Type: text/html; charset="UTF-8"
+
+<div dir="ltr">woei</div>
+
+--0000000000007a743b05843c9b06--
+

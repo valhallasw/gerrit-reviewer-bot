@@ -1,17 +1,19 @@
 import sys
 import poplib
 import email.parser
-import config
 import logging
 import traceback
+from email.message import Message
+from typing import Iterable, Dict, Tuple
 
 import gerrit_rest
 from add_reviewer import ReviewerFactory, add_reviewers
 
 logger = logging.getLogger('pop3bot')
-g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
+
 
 def mkmailbox(debug=0):
+    import config
     username = config.username
     password = config.password
 
@@ -24,7 +26,7 @@ def mkmailbox(debug=0):
     return mailbox
 
 
-def mail_generator(mailbox):
+def mail_generator(mailbox) -> Iterable[str]:
     """ RETRieves the contents of mails, yields those
         and DELEtes them before the next mail is RETRieved """
     nmails, octets = mailbox.stat()
@@ -35,9 +37,9 @@ def mail_generator(mailbox):
         mailbox.dele(i)
 
 
-def message_generator(mailbox):
+def message_generator(emails: Iterable[str]) -> Iterable[Tuple[Message, str]]:
     p = email.parser.Parser()
-    for mail in mail_generator(mailbox):
+    for mail in emails:
         mail = p.parsestr(mail)
         # if mail is multipart-mime (probably not from gerrit)
         # mail.get_payload() is a list rather than a string
@@ -47,17 +49,25 @@ def message_generator(mailbox):
         while isinstance(m.get_payload(), list):
             m = m.get_payload()[0]
 
-        yield mail, m.get_payload(decode=True)
+        yield mail, m.get_payload(decode=True).decode('utf-8', 'replace')
 
 
-def gerritmail_generator(mailbox):
-    for message, contents in message_generator(mailbox):
+def gerritmail_generator(generator: Iterable[Tuple[Message, str]]) -> Iterable[Dict[str, str]]:
+    for message, contents in generator:
         mi = dict(list(message.items()))
         subject = mi.get('Subject', 'Unknown')
         sender = mi.get('From', 'Unknown')
 
-        gerrit_data = dict((k,v) for (k,v) in list(message.items()) if k.startswith('X-Gerrit'))
-        gerrit_data.update(dict(line.split(": ", 1) for line in contents.split('\n') if (line.startswith("Gerrit-") and ": " in line)))
+        gerrit_data = {}
+
+        for (header, value) in message.items():
+            if header.startswith("X-Gerrit"):
+                gerrit_data[header] = value
+
+        for line in contents.split("\n"):
+            if line.startswith("Gerrit-") and ": " in line:
+                k, v = line.split(": ", 1)
+                gerrit_data[k] = v
 
         print(subject, sender, gerrit_data.get('X-Gerrit-Change-Id'))
 
@@ -68,8 +78,8 @@ def gerritmail_generator(mailbox):
             print(contents)
 
 
-def new_changeset_generator(mailbox):
-    for mail in gerritmail_generator(mailbox):
+def new_changeset_generator(g: gerrit_rest.GerritREST, mail_generator: Iterable[Dict[str, str]]) -> Iterable[Dict]:
+    for mail in mail_generator:
         mt = mail.get('X-Gerrit-MessageType', '')
         ps = mail.get('Gerrit-PatchSet', '')
         commit = mail['X-Gerrit-Commit']
@@ -89,6 +99,7 @@ def new_changeset_generator(mailbox):
 
 
 def main():
+    g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
     RF = ReviewerFactory()
     mailbox = mkmailbox(0)
     nmails, octets = mailbox.stat()
@@ -96,7 +107,12 @@ def main():
     print("%i e-mails to process (%i kB)" % (nmails, octets/1024))
 
     try:
-        for j, changeset in enumerate(new_changeset_generator(mailbox)):
+        emails = mail_generator(mailbox)
+        messages = message_generator(emails)
+        gerritmails = gerritmail_generator(messages)
+        changesets = new_changeset_generator(g, gerritmails)
+
+        for j, changeset in enumerate(changesets):
             try:
                 reviewers = RF.get_reviewers_for_changeset(changeset)
                 add_reviewers(changeset['id'], reviewers)
