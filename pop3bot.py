@@ -17,7 +17,7 @@ def mkmailbox(debug=0):
     username = config.username
     password = config.password
 
-    mailbox = poplib.POP3_SSL('pop.googlemail.com', '995') 
+    mailbox = poplib.POP3_SSL('pop.googlemail.com', '995')
     mailbox.set_debuglevel(debug)
 
     mailbox.user(username)
@@ -30,7 +30,7 @@ def mail_generator(mailbox) -> Iterable[str]:
     """ RETRieves the contents of mails, yields those
         and DELEtes them before the next mail is RETRieved """
     nmails, octets = mailbox.stat()
-    for i in range(1,nmails+1):
+    for i in range(1, nmails + 1):
         # use TOP rather than REPR; gmail (sometimes?) interprets REPR'd
         # messages as read and does not report them again (sigh)
         yield "\n".join(mailbox.top(i, 1000)[1])
@@ -104,7 +104,7 @@ def main():
     mailbox = mkmailbox(0)
     nmails, octets = mailbox.stat()
 
-    print("%i e-mails to process (%i kB)" % (nmails, octets/1024))
+    print("%i e-mails to process (%i kB)" % (nmails, octets / 1024))
 
     try:
         emails = mail_generator(mailbox)

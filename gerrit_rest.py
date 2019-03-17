@@ -1,4 +1,5 @@
-import json, requests
+import json
+import requests
 
 requests.adapters.DEFAULT_RETRIES = 5
 
@@ -25,7 +26,7 @@ class GerritREST(object):
             * any parameters taken by the REST endpoint (via kwargs)
         """
         r = self._session.get(self._url + '/%s/' % name, params=kwargs)
-        realjson = r.text[5:] # strips anti-XSS prefix
+        realjson = r.text[5:]  # strips anti-XSS prefix
         return json.loads(realjson)
 
     def __getattr__(self, name):

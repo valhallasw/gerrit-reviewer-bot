@@ -1,21 +1,21 @@
 import logging
-from email.message import Message
-
-logging.basicConfig(level=logging.DEBUG)
-
 import pathlib
+
+from email.message import Message
+from typing import NamedTuple, Tuple, List, Dict
+
 import pop3bot
 import gerrit_rest
 
-from typing import NamedTuple, Tuple, List, Dict
-
+logging.basicConfig(level=logging.DEBUG)
 basepath = pathlib.Path(__file__).parent
 
 
-class ProcessedEmail(NamedTuple):
-    messages: List[Tuple[Message, str]]
-    gerritmails: List[Dict[str, str]]
-    changesets: List[Dict]
+ProcessedEmail = NamedTuple('ProcessedEmail', [
+    ('messages', List[Tuple[Message, str]]),
+    ('gerritmails', List[Dict[str, str]]),
+    ('changesets', List[Dict])
+])
 
 
 class MockGerrit(gerrit_rest.GerritREST):
@@ -30,7 +30,7 @@ class MockGerrit(gerrit_rest.GerritREST):
 
 
 def process_email(mbox: str) -> ProcessedEmail:
-    emails = [open(basepath / "resources" / "gerrit_emails" / mbox).read()]
+    emails = [(basepath / "resources" / "gerrit_emails" / mbox).open().read()]
     messages = list(pop3bot.message_generator(emails))
     gerritmails = list(pop3bot.gerritmail_generator(messages))
     changesets = list(pop3bot.new_changeset_generator(MockGerrit(), gerritmails))

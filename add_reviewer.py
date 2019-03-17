@@ -15,6 +15,7 @@ def call_utf8(command, *args, **kwargs):
     command = [part.encode('utf-8') for part in command]
     return subprocess.call(command, *args, **kwargs)
 
+
 class ReviewerFactory(object):
     nofilere = re.compile('')
 
@@ -35,7 +36,7 @@ class ReviewerFactory(object):
     def _tryParseInt(self, value, default=None):
         try:
             return int(value)
-        except Exception as e:
+        except Exception:
             return default
 
     def _reviewer_generator(self, project, changedfiles, addedfiles=[]):
@@ -49,7 +50,11 @@ class ReviewerFactory(object):
                 if sibling.tag == "h":
                     break
                 if sibling.tag == "template" and sibling.title == self.template:
-                    reviewer = None; modulo = 1; filere=self.nofilere; matchall=False
+                    reviewer = None
+                    modulo = 1
+                    filere = self.nofilere
+                    matchall = False
+
                     for part in sibling.iter('part'):
                         if part.name == "" and part.name.attrib['index'] == '1':
                             reviewer = part.value.text
@@ -60,7 +65,7 @@ class ReviewerFactory(object):
                         elif part.name == "file_regexp":
                             try:
                                 filere = re.compile(part.value.text or part.value.ext.inner.text, flags=re.DOTALL | re.IGNORECASE)
-                            except re.error as e:
+                            except re.error:
                                 logging.error("Could not process file regexp %r -- ignoring." % (part.value.text or part.value.ext.inner.text))
                         elif part.name == "match_all_files" or part.value.text == "match_all_files":
                             matchall = True
@@ -140,6 +145,6 @@ def add_reviewers(changeid, reviewers):
             with open('debug.out', 'a') as fp:
                 retval = call_utf8(
                     [callcmd[0]] + ["-v", "-v"] + callcmd[1:],
-                    stdout = fp,
-                    stderr = subprocess.STDOUT)
+                    stdout=fp,
+                    stderr=subprocess.STDOUT)
             raise Exception(command + ' was not executed successfully (code %i)' % retval)
