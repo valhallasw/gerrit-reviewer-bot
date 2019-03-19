@@ -33,14 +33,14 @@ def mail_generator(mailbox) -> Iterable[str]:
     for i in range(1, nmails + 1):
         # use TOP rather than REPR; gmail (sometimes?) interprets REPR'd
         # messages as read and does not report them again (sigh)
-        yield "\n".join(mailbox.top(i, 1000)[1])
+        yield b"\n".join(mailbox.top(i, 1000)[1])
         mailbox.dele(i)
 
 
-def message_generator(emails: Iterable[str]) -> Iterable[Tuple[Message, str]]:
-    p = email.parser.Parser()
+def message_generator(emails: Iterable[bytes]) -> Iterable[Tuple[Message, str]]:
+    p = email.parser.BytesParser()
     for mail in emails:
-        mail = p.parsestr(mail)
+        mail = p.parsebytes(mail)
         # if mail is multipart-mime (probably not from gerrit)
         # mail.get_payload() is a list rather than a string
         # and mail.get_payload(decode=True) returns None

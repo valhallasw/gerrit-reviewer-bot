@@ -30,7 +30,7 @@ class MockGerrit(gerrit_rest.GerritREST):
 
 
 def process_email(mbox: str) -> ProcessedEmail:
-    emails = [(basepath / "resources" / "gerrit_emails" / mbox).open().read()]
+    emails = [(basepath / "resources" / "gerrit_emails" / mbox).open('rb').read()]
     messages = list(pop3bot.message_generator(emails))
     gerritmails = list(pop3bot.gerritmail_generator(messages))
     changesets = list(pop3bot.new_changeset_generator(MockGerrit(), gerritmails))
