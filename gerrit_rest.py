@@ -1,6 +1,8 @@
-import json, requests
+import json
+import requests
 
 requests.adapters.DEFAULT_RETRIES = 5
+
 
 class GerritREST(object):
     def __init__(self, url):
@@ -13,9 +15,10 @@ class GerritREST(object):
         """
         self._url = url.rstrip('/')
         self._session = requests.Session()
-        self._session.headers.update({'Accept': 'application/json',
-                                      'User-Agent':\
-'Gerrit-Reviewer-Bot GerritREST python-requests/%s' % (requests.__version__)})
+        self._session.headers.update({
+            'Accept': 'application/json',
+            'User-Agent': 'Gerrit-Reviewer-Bot GerritREST python-requests/%s' % (requests.__version__, )
+        })
 
     def _request(self, name, **kwargs):
         """ Make a request. Parameters:
@@ -23,7 +26,7 @@ class GerritREST(object):
             * any parameters taken by the REST endpoint (via kwargs)
         """
         r = self._session.get(self._url + '/%s/' % name, params=kwargs)
-        realjson = r.text[5:] # strips anti-XSS prefix
+        realjson = r.text[5:]  # strips anti-XSS prefix
         return json.loads(realjson)
 
     def __getattr__(self, name):
@@ -44,4 +47,9 @@ class GerritREST(object):
 
         return self._request('changes', q=q, n=n, o=o)
 
-    # def accounts, def groups, def projects, etc.
+    def get_changeset(self, changeid, o=['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_ACCOUNTS']):
+        matchingchanges = self.changes(changeid, n=1, o=o)
+        if matchingchanges:
+            return matchingchanges[0]
+        else:
+            return None

@@ -20,4 +20,4 @@
 ## For more information see the manual pages of crontab(5) and cron(8)
 ## 
 ## m h  dom mon dow   command
-*/5 * * * * jsub -once -mem 500M -l h_rt=1:00:00 -l release=trusty gerrit_reviewer_bot.sh > /dev/null 2>>gerrit_reviewer_bot.err && ./prune.sh
+*/5 * * * * jsub -once -mem 500M -l h_rt=1:00:00 src/gerrit-reviewer-bot-stretch/gerrit_reviewer_bot.sh > /dev/null 2>>gerrit_reviewer_bot.err && src/gerrit-reviewer-bot-stretch/prune.sh

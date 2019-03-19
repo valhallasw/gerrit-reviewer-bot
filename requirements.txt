@@ -1,0 +1,4 @@
+lxml
+requests
+pytest
+flake8

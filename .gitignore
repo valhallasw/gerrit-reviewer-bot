@@ -3,3 +3,5 @@ throttle.ctrl
 *.pyc
 apicache
 config.py
+
+.idea
