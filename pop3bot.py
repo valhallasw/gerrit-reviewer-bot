@@ -9,6 +9,8 @@ from typing import Iterable, Dict, Tuple
 import gerrit_rest
 from add_reviewer import ReviewerFactory, add_reviewers
 
+poplib._MAXLINE = 4096
+
 logger = logging.getLogger('pop3bot')
 
 
