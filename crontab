@@ -21,3 +21,4 @@
 ## 
 ## m h  dom mon dow   command
 */5 * * * * jsub -once -mem 500M -l h_rt=1:00:00 src/gerrit-reviewer-bot-stretch/gerrit_reviewer_bot.sh > /dev/null 2>>gerrit_reviewer_bot.err
+1 12 * * *  jsub -once -mem 500M src/gerrit-reviewer-bot-stretch/error_email.sh > /dev/null 2>>gerrit_reviewer_bot.err
