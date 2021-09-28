@@ -9,6 +9,8 @@ from typing import Iterable, Dict, Tuple
 import gerrit_rest
 from add_reviewer import ReviewerFactory, add_reviewers
 
+# monkey patch max line length for poplib
+# as gmail sometimes sends > 2048 char lines
 poplib._MAXLINE = 4096
 
 logger = logging.getLogger('pop3bot')
@@ -64,12 +66,12 @@ def gerritmail_generator(generator: Iterable[Tuple[Message, str]]) -> Iterable[D
 
         for (header, value) in message.items():
             if header.startswith("X-Gerrit"):
-                gerrit_data[header] = value
+                gerrit_data[header] = value.rstrip()
 
         for line in contents.split("\n"):
             if line.startswith("Gerrit-") and ": " in line:
                 k, v = line.split(": ", 1)
-                gerrit_data[k] = v
+                gerrit_data[k] = v.rstrip()
 
         print(subject, sender, gerrit_data.get('X-Gerrit-Change-Id'))
 
