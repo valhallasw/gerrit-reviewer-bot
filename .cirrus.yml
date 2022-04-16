@@ -1,5 +1,5 @@
 container:
-  image: python:3.5
+  image: python:3.9
 
 test_task:
   pip_cache:
