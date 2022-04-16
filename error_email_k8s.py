@@ -3,7 +3,7 @@ from email.message import EmailMessage
 
 errlog = open('gerrit-reviewer-bot.err').readlines()[-100:]
 
-errorlines = [l for l in errlog if "Running as task" not in l]
+errorlines = [line for line in errlog if "Running as task" not in line]
 
 if not any(errorlines):
     print("OK")
