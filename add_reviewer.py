@@ -139,7 +139,7 @@ def add_reviewers(changeid, reviewers):
         params.append(changeid)
         command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
         print(command)
-        callcmd = ["ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command]
+        callcmd = ["./ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command]
         retval = call_utf8(callcmd)
         if retval != 0:
             with open('debug.out', 'a') as fp:

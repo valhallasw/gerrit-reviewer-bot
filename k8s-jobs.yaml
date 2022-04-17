@@ -1,0 +1,10 @@
+---
+- name: gerrit-reviewer-bot
+  command: src/gerrit-reviewer-bot/gerrit_reviewer_bot_tf-python39.sh
+  image: tf-python39
+  schedule: "*/5 * * * *"
+- name: gerrit-reviewer-bot-errormail
+  command: python src/gerrit-reviewer-bot/error_mail_k8s.py
+  image: tf-python39
+  schedule: "1 12 * * *"
+  email: onfailure
