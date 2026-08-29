@@ -39,7 +39,7 @@ class ReviewerFactory:
     def _tryParseInt(self, value, default: int | None = None) -> int | None:
         try:
             return int(value)
-        except Exception:
+        except (ValueError, TypeError):
             return default
 
     def _parse_template(self, sibling, changedfiles, addedfiles, name):
