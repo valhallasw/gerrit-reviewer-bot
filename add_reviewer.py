@@ -111,7 +111,7 @@ class ReviewerFactory:
                 logger.debug('Skipping %r due to modulo', reviewer)
             i += 1
 
-    def get_reviewers_for_changeset(self, changeset: dict) -> list[str] | Iterable[str]:
+    def get_reviewers_for_changeset(self, changeset: dict) -> Iterable[str]:
         owner = changeset['owner']['name']
 
         try:
