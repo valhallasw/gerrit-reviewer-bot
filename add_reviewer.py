@@ -150,7 +150,7 @@ def add_reviewers(changeid, reviewers):
         command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
         print(command)
         callcmd = [
-            "./ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes",
+            "ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes",
             "-o", "UserKnownHostsFile=known_hosts", "-i", "id_rsa",
             "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command
         ]
