@@ -12,9 +12,6 @@ import lxml.objectify
 logger = logging.getLogger('add_reviewers')
 
 
-def call_utf8(command: list[str], *args, **kwargs) -> int:
-    return subprocess.call(command, *args, **kwargs)
-
 
 class ReviewerFactory:
     nofilere = re.compile('')
@@ -157,10 +154,10 @@ def add_reviewers(changeid, reviewers):
             "-o", "UserKnownHostsFile=known_hosts", "-i", "id_rsa",
             "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command
         ]
-        retval = call_utf8(callcmd)
+        retval = subprocess.call(callcmd)
         if retval != 0:
             with open('debug.out', 'a') as fp:
-                retval = call_utf8(
+                retval = subprocess.call(
                     [callcmd[0]] + ["-v", "-v"] + callcmd[1:],
                     stdout=fp,
                     stderr=subprocess.STDOUT)
