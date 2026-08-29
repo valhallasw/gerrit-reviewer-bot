@@ -84,7 +84,10 @@ def new_changeset_generator(g: gerrit_rest.GerritREST, mail_generator: Iterable[
     for mail in mail_generator:
         mt = mail.get('X-Gerrit-MessageType', '')
         ps = mail.get('Gerrit-PatchSet', '')
-        commit = mail['X-Gerrit-Commit']
+        commit = mail.get('X-Gerrit-Commit')
+        if not commit:
+            logger.warning("Skipping message with no X-Gerrit-Commit: %r", mail)
+            continue
 
         if mt != 'newchange':
             logger.debug("skipping message (%s)", mt)
