@@ -41,6 +41,33 @@ class ReviewerFactory(object):
         except Exception:
             return default
 
+    def _parse_template(self, sibling, changedfiles, addedfiles, name):
+        reviewer = None
+        modulo = 1
+        filere = self.nofilere
+        matchall = False
+
+        for part in sibling.iter('part'):
+            if part.name == "" and part.name.attrib['index'] == '1':
+                reviewer = part.value.text
+            elif part.name == "every":
+                modulo = self._tryParseInt(part.value, 1)
+                if modulo < 2:
+                    modulo = 1
+            elif part.name == "file_regexp":
+                try:
+                    regexp = part.value.text or part.value.ext.inner.text
+                    filere = re.compile(regexp, flags=re.DOTALL | re.IGNORECASE)
+                except re.error:
+                    logging.error("Could not process file regexp %r -- ignoring." % regexp)
+            elif part.name == "match_all_files" or part.value.text == "match_all_files":
+                matchall = True
+            elif part.name == "only_match_new_files" or part.value.text == "only_match_new_files":
+                logger.info("%r:%r -> only checking new files" % (name, reviewer))
+                changedfiles = addedfiles
+
+        return reviewer, modulo, filere, matchall, changedfiles
+
     def _reviewer_generator(self, project, changedfiles, addedfiles=[]):
         tree = self.objecttree
 
@@ -52,29 +79,9 @@ class ReviewerFactory(object):
                 if sibling.tag == "h":
                     break
                 if sibling.tag == "template" and sibling.title == self.template:
-                    reviewer = None
-                    modulo = 1
-                    filere = self.nofilere
-                    matchall = False
-
-                    for part in sibling.iter('part'):
-                        if part.name == "" and part.name.attrib['index'] == '1':
-                            reviewer = part.value.text
-                        elif part.name == "every":
-                            modulo = self._tryParseInt(part.value, 1)
-                            if modulo < 2:
-                                modulo = 1
-                        elif part.name == "file_regexp":
-                            try:
-                                regexp = part.value.text or part.value.ext.inner.text
-                                filere = re.compile(regexp, flags=re.DOTALL | re.IGNORECASE)
-                            except re.error:
-                                logging.error("Could not process file regexp %r -- ignoring." % regexp)
-                        elif part.name == "match_all_files" or part.value.text == "match_all_files":
-                            matchall = True
-                        elif part.name == "only_match_new_files" or part.value.text == "only_match_new_files":
-                            logger.info("%r:%r -> only checking new files" % (name, reviewer))
-                            changedfiles = addedfiles
+                    reviewer, modulo, filere, matchall, changedfiles = self._parse_template(
+                        sibling, changedfiles, addedfiles, name
+                    )
                     if matchall:
                         result = all(filere.search(file) for file in changedfiles)
                     else:
