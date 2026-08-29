@@ -1,0 +1,9 @@
+# POP3 mailbox credentials
+username = "<pop3-username>"
+password = "<pop3-password>"
+pophost = "<pop3-host>"
+
+# Error email settings (used by error_email_k8s.py)
+smtp_host = "mail.tools.wmflabs.org"
+error_mail_from = "tools.gerrit-reviewer-bot <tools.gerrit-reviewer-bot@tools.wmflabs.org>"
+error_mail_to = "<recipient1@example.org>, <recipient2@example.org>"

@@ -31,11 +31,25 @@ more information is required from Gerrit, try to do this using options to the
 
 Configuration
 -------------
-The following environment variables are supported:
+Runtime configuration is split between environment variables and `config.py`.
+
+Copy `config.py.example` to `config.py` and fill in the values. This file is
+not committed to the repository as it contains credentials.
+
+| Setting             | Description                                      |
+|---------------------|--------------------------------------------------|
+| `username`          | POP3 mailbox username                            |
+| `password`          | POP3 mailbox password                            |
+| `pophost`           | POP3 server hostname                             |
+| `smtp_host`         | SMTP server for error emails                     |
+| `error_mail_from`   | Sender address for error emails                  |
+| `error_mail_to`     | Recipient(s) for error emails (comma-separated)  |
+
+The following environment variables are also supported:
 
 | Variable    | Default | Description                                      |
 |-------------|---------|--------------------------------------------------|
-| `LOG_LEVEL` | `INFO` | Python logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+| `LOG_LEVEL` | `INFO`  | Python logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 
 To change the log level in production, add or update the `env:` block for the
 relevant job in `k8s-jobs.yaml`:
