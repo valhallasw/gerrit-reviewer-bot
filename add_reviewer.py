@@ -27,7 +27,9 @@ class ReviewerFactory(object):
     def data(self):
         if hasattr(self, '_data'):
             return self._data
-        return requests.get("https://www.mediawiki.org/w/api.php?format=json&action=parse&page=Git/Reviewers&prop=parsetree", headers={"User-Agent": "gerrit-reviewer-bot/1.0 (https://github.com/valhallasw/gerrit-reviewer-bot)"}).json()
+        url = "https://www.mediawiki.org/w/api.php?format=json&action=parse&page=Git/Reviewers&prop=parsetree"
+        headers = {"User-Agent": "gerrit-reviewer-bot/1.0 (https://github.com/valhallasw/gerrit-reviewer-bot)"}
+        return requests.get(url, headers=headers).json()
 
     @property
     def objecttree(self):
@@ -64,9 +66,10 @@ class ReviewerFactory(object):
                                 modulo = 1
                         elif part.name == "file_regexp":
                             try:
-                                filere = re.compile(part.value.text or part.value.ext.inner.text, flags=re.DOTALL | re.IGNORECASE)
+                                regexp = part.value.text or part.value.ext.inner.text
+                                filere = re.compile(regexp, flags=re.DOTALL | re.IGNORECASE)
                             except re.error:
-                                logging.error("Could not process file regexp %r -- ignoring." % (part.value.text or part.value.ext.inner.text))
+                                logging.error("Could not process file regexp %r -- ignoring." % regexp)
                         elif part.name == "match_all_files" or part.value.text == "match_all_files":
                             matchall = True
                         elif part.name == "only_match_new_files" or part.value.text == "only_match_new_files":
@@ -139,7 +142,11 @@ def add_reviewers(changeid, reviewers):
         params.append(changeid)
         command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
         print(command)
-        callcmd = ["./ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes", "-o", "UserKnownHostsFile=known_hosts", "-i", "id_rsa", "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command]
+        callcmd = [
+            "./ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes",
+            "-o", "UserKnownHostsFile=known_hosts", "-i", "id_rsa",
+            "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command
+        ]
         retval = call_utf8(callcmd)
         if retval != 0:
             with open('debug.out', 'a') as fp:
