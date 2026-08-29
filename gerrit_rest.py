@@ -33,7 +33,7 @@ class GerritREST:
 
     def __getattr__(self, name):
         """ Provides access to any APIs not yet implemented """
-        def wrapper(self, **kwargs):
+        def wrapper(**kwargs):
             return self._request(name, **kwargs)
         wrapper.__name__ = name
         return wrapper
