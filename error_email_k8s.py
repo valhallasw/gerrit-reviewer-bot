@@ -33,8 +33,11 @@ msg['From'] = config.error_mail_from
 msg['To'] = config.error_mail_to
 msg.add_attachment("".join(errlog), filename='error.log')
 
-s = smtplib.SMTP(config.smtp_host)
-s.send_message(msg)
-s.quit()
-
-print("Sent error email")
+try:
+    s = smtplib.SMTP(config.smtp_host)
+    s.send_message(msg)
+    s.quit()
+    print("Sent error email")
+except smtplib.SMTPException as e:
+    print(f"Failed to send error email: {e}")
+    exit(1)
