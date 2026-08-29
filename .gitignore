@@ -5,3 +5,4 @@ apicache
 config.py
 
 .idea
+.venv
