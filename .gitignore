@@ -3,6 +3,8 @@ throttle.ctrl
 *.pyc
 apicache
 config.py
+debug.out
+known_hosts
 
 .idea
 .venv
