@@ -29,6 +29,33 @@ Changes in the ReviewerFactory can best be tested using pytest. If
 more information is required from Gerrit, try to do this using options to the
 /changes/ REST API.
 
+Configuration
+-------------
+The following environment variables are supported:
+
+| Variable    | Default | Description                                      |
+|-------------|---------|--------------------------------------------------|
+| `LOG_LEVEL` | `INFO` | Python logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+
+To change the log level in production, add or update the `env:` block for the
+relevant job in `k8s-jobs.yaml`:
+
+``` yaml
+- name: gerrit-reviewer-bot
+  ...
+  env:
+    - name: LOG_LEVEL
+      value: INFO
+```
+
+Then reload the job spec:
+
+``` bash
+toolforge jobs load k8s-jobs.yaml
+```
+
+The next pod that spawns will pick up the new value.
+
 Usage/deployment
 ----------------
 The bot runs on [Wikimedia Toolforge](https://wikitech.wikimedia.org/wiki/Portal:Toolforge)
@@ -55,4 +82,9 @@ curl -sSf https://bootstrap.pypa.io/get-pip.py | ~/venv-tf-python313/bin/python
 To do a manual test run:
 ``` bash
 bash ~/src/gerrit-reviewer-bot/gerrit_reviewer_bot_tf-python313.sh
+```
+
+To override the log level for a manual run:
+``` bash
+LOG_LEVEL=INFO bash ~/src/gerrit-reviewer-bot/gerrit_reviewer_bot_tf-python313.sh
 ```

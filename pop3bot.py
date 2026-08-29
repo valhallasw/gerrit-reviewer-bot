@@ -1,3 +1,4 @@
+import os
 import poplib
 import email.parser
 import logging
@@ -71,13 +72,12 @@ def gerritmail_generator(generator: Iterable[Tuple[Message, str]]) -> Iterable[D
                 k, v = line.split(": ", 1)
                 gerrit_data[k] = v.rstrip()
 
-        print(subject, sender, gerrit_data.get('X-Gerrit-Change-Id'))
+        logger.info("%s %s %s", subject, sender, gerrit_data.get('X-Gerrit-Change-Id'))
 
         if gerrit_data:
             yield gerrit_data
         else:
-            print("Skipping; Contents: ")
-            print(contents)
+            logger.warning("Skipping; Contents: %s", contents)
 
 
 def new_changeset_generator(g: gerrit_rest.GerritREST, mail_generator: Iterable[Dict[str, str]]) -> Iterable[Dict]:
@@ -87,28 +87,29 @@ def new_changeset_generator(g: gerrit_rest.GerritREST, mail_generator: Iterable[
         commit = mail['X-Gerrit-Commit']
 
         if mt != 'newchange':
-            print("skipping message (%s)" % mt)
+            logger.debug("skipping message (%s)", mt)
             continue
         if ps != '1':
-            print("skipping PS%s" % ps)
+            logger.debug("skipping PS%s", ps)
             continue
-        print("(getting ", commit, ")")
+        logger.debug("getting %s", commit)
         matchingchange = g.get_changeset(commit)
         if not matchingchange:
-            print("Could not find matching change for %s" % commit)
+            logger.warning("Could not find matching change for %s", commit)
         elif matchingchange.get('work_in_progress'):
-            print("skipping WIP change %s" % commit)
+            logger.debug("skipping WIP change %s", commit)
         else:
             yield matchingchange
 
 
 def main():
+    logging.basicConfig(level=os.environ.get('LOG_LEVEL', 'INFO').upper(), format='%(asctime)s %(name)s %(levelname)s %(message)s')
     g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
     RF = ReviewerFactory()
     mailbox = mkmailbox(0)
     nmails, octets = mailbox.stat()
 
-    print("%i e-mails to process (%i kB)" % (nmails, octets / 1024))
+    logger.info("%i e-mails to process (%i kB)", nmails, octets / 1024)
 
     try:
         emails = mail_generator(mailbox)
