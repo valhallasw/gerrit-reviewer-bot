@@ -1,11 +1,12 @@
 import json
+from typing import Any
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 
-class GerritREST(object):
-    def __init__(self, url):
+class GerritREST:
+    def __init__(self, url: str) -> None:
         """ Basic wrapper around the Gerrit REST API. Takes care of
             connections and JSON-decoding. Currently only GET requests
             are supported.
@@ -21,7 +22,7 @@ class GerritREST(object):
             'User-Agent': 'Gerrit-Reviewer-Bot GerritREST python-requests/%s' % (requests.__version__, )
         })
 
-    def _request(self, name, **kwargs):
+    def _request(self, name: str, **kwargs: Any) -> Any:
         """ Make a request. Parameters:
             * name - The name of the REST endpoint. This will be appended to the base URL.
             * any parameters taken by the REST endpoint (via kwargs)
@@ -37,7 +38,7 @@ class GerritREST(object):
         wrapper.__name__ = name
         return wrapper
 
-    def changes(self, q="", n=25, o=None):
+    def changes(self, q: str = "", n: int = 25, o: list[str] | None = None) -> list[dict]:
         """ Submits a request to the /changes/ REST API. Parameters:
             * q - the query string,
             * n - the maximum number of results to return - 25 by default,
@@ -50,7 +51,7 @@ class GerritREST(object):
             o = []
         return self._request('changes', q=q, n=n, o=o)
 
-    def get_changeset(self, changeid, o=None):
+    def get_changeset(self, changeid: str, o: list[str] | None = None) -> dict | None:
         if o is None:
             o = ['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_ACCOUNTS']
         matchingchanges = self.changes(changeid, n=1, o=o)

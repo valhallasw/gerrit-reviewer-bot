@@ -3,6 +3,7 @@ import re
 import logging
 from shlex import quote
 from fnmatch import fnmatch
+from typing import Generator, Iterable
 
 import requests
 import lxml.objectify
@@ -11,15 +12,15 @@ import lxml.objectify
 logger = logging.getLogger('add_reviewers')
 
 
-def call_utf8(command, *args, **kwargs):
+def call_utf8(command: list[str], *args, **kwargs) -> int:
     command = [part.encode('utf-8') for part in command]
     return subprocess.call(command, *args, **kwargs)
 
 
-class ReviewerFactory(object):
+class ReviewerFactory:
     nofilere = re.compile('')
 
-    def __init__(self, page="Git/Reviewers", template="Gerrit-reviewer"):
+    def __init__(self, page: str = "Git/Reviewers", template: str = "Gerrit-reviewer") -> None:
         self.page = page
         self.template = template
 
@@ -35,7 +36,7 @@ class ReviewerFactory(object):
     def objecttree(self):
         return lxml.objectify.fromstring(self.data['parse']['parsetree']['*'])
 
-    def _tryParseInt(self, value, default=None):
+    def _tryParseInt(self, value, default: int | None = None) -> int | None:
         try:
             return int(value)
         except Exception:
@@ -68,7 +69,7 @@ class ReviewerFactory(object):
 
         return reviewer, modulo, filere, matchall, changedfiles
 
-    def _reviewer_generator(self, project, changedfiles, addedfiles=None):
+    def _reviewer_generator(self, project: str, changedfiles: list[str], addedfiles: list[str] | None = None) -> Generator[tuple[str, int], None, None]:
         if addedfiles is None:
             addedfiles = []
         tree = self.objecttree
@@ -93,7 +94,7 @@ class ReviewerFactory(object):
                         logger.debug(lxml.objectify.dump(sibling))
                         yield reviewer, modulo
 
-    def _filter_reviewers(self, reviewers, owner_name, changeset_number):
+    def _filter_reviewers(self, reviewers: Iterable[tuple[str, int]], owner_name: str, changeset_number: int) -> Generator[str, None, None]:
         if owner_name.lower() == 'l10n-bot':
             logger.debug('Skipping l10n-bot')
             return
@@ -109,7 +110,7 @@ class ReviewerFactory(object):
             else:
                 logger.debug('Skipping %r due to modulo')
 
-    def get_reviewers_for_changeset(self, changeset):
+    def get_reviewers_for_changeset(self, changeset: dict) -> list[str] | Iterable[str]:
         owner = changeset['owner']['name']
 
         try:
