@@ -21,7 +21,7 @@ def mkmailbox(debug=0):
     username = config.username
     password = config.password
 
-    mailbox = poplib.POP3_SSL(config.pophost, '995')
+    mailbox = poplib.POP3_SSL(config.pophost, '995', timeout=30)
     mailbox.set_debuglevel(debug)
 
     mailbox.user(username)
