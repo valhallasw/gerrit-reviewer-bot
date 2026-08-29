@@ -96,10 +96,12 @@ def new_changeset_generator(g: gerrit_rest.GerritREST, mail_generator: Iterable[
             continue
         print("(getting ", commit, ")")
         matchingchange = g.get_changeset(commit)
-        if matchingchange:
-            yield matchingchange
-        else:
+        if not matchingchange:
             print("Could not find matching change for %s" % commit)
+        elif matchingchange.get('work_in_progress'):
+            print("skipping WIP change %s" % commit)
+        else:
+            yield matchingchange
 
 
 def main():
