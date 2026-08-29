@@ -1,8 +1,6 @@
-import sys
 import poplib
 import email.parser
 import logging
-import traceback
 from email.message import Message
 from typing import Iterable, Dict, Tuple
 
@@ -123,10 +121,7 @@ def main():
                 reviewers = RF.get_reviewers_for_changeset(changeset)
                 add_reviewers(changeset['id'], reviewers)
             except Exception:
-                sys.stdout.write(repr(changeset) + "\n caused exception:")
-                traceback.print_exc()
-                sys.stderr.write(repr(changeset) + "\n caused exception:")
-                raise
+                logger.exception("Exception processing changeset %r", changeset)
     finally:
         # flush succesfully processed emails
         mailbox.quit()
