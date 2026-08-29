@@ -4,7 +4,7 @@
   image: python3.13
   schedule: "*/5 * * * *"
 - name: gerrit-reviewer-bot-errormail
-  command: python src/gerrit-reviewer-bot/error_mail_k8s.py
+  command: python src/gerrit-reviewer-bot/error_email_k8s.py
   image: python3.13
   schedule: "1 12 * * *"
   email: onfailure
