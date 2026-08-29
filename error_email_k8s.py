@@ -2,7 +2,11 @@ import smtplib
 from email.message import EmailMessage
 import config
 
-errlog = open('gerrit-reviewer-bot.err').readlines()[-100:]
+try:
+    errlog = open('gerrit-reviewer-bot.err').readlines()[-100:]
+except FileNotFoundError:
+    print("OK")
+    exit(0)
 
 errorlines = [line for line in errlog if "Running as task" not in line]
 
