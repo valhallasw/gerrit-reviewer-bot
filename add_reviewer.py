@@ -121,24 +121,20 @@ class ReviewerFactory:
             changes = list(changeset['revisions'].values())[0]['files']
             changedfiles = [k for (k, v) in list(changes.items())]
             addedfiles = [k for (k, v) in list(changes.items()) if 'status' in v and v['status'] == 'A']
-        except Exception as e:
-            print(e, repr(changeset))
+        except Exception:
+            logger.exception("Could not extract changed files from changeset %r", changeset)
             changedfiles = addedfiles = []
 
         project = changeset['project']
         number = changeset['_number']
 
-        print("")
-        print("Processing changeset ", changeset['change_id'], changeset['subject'], 'by', owner)
+        logger.info("Processing changeset %s %s by %s", changeset['change_id'], changeset['subject'], owner)
         for f in changedfiles:
-            if f in addedfiles:
-                print("A", end=' ')
-            else:
-                print("u", end=' ')
-            print(f)
+            prefix = "A" if f in addedfiles else "u"
+            logger.info("%s %s", prefix, f)
 
         if changeset['status'] in ['ABANDONED', 'MERGED']:
-            print("Changeset was ", changeset['status'], "; not adding reviewers")
+            logger.info("Changeset was %s; not adding reviewers", changeset['status'])
             return []
 
         reviewers = self._filter_reviewers(self._reviewer_generator(project, changedfiles, addedfiles), owner, number)
@@ -155,7 +151,7 @@ def add_reviewers(changeid, reviewers):
             params.append(reviewer)
         params.append(changeid)
         command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
-        print(command)
+        logger.info("Running: %s", command)
         callcmd = [
             "ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes",
             "-o", "UserKnownHostsFile=known_hosts", "-i", "id_rsa",
