@@ -1,7 +1,7 @@
 import json
 import requests
-
-requests.adapters.DEFAULT_RETRIES = 5
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 
 class GerritREST(object):
@@ -15,6 +15,7 @@ class GerritREST(object):
         """
         self._url = url.rstrip('/')
         self._session = requests.Session()
+        self._session.mount('https://', HTTPAdapter(max_retries=Retry(total=5, backoff_factor=1)))
         self._session.headers.update({
             'Accept': 'application/json',
             'User-Agent': 'Gerrit-Reviewer-Bot GerritREST python-requests/%s' % (requests.__version__, )
