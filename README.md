@@ -8,21 +8,15 @@ Changes are read from SSH ('add_reviewers.py') or POP3 ('pop3bot.py').
 Development
 -----------
 ``` bash
-virtualenv --system-site-packages reviewer-bot && cd reviewer-bot
-source bin/activate
-git clone http://github.com/valhallasw/gerrit-reviewer-bot src
-cd src
-pip install -r requirements
-git clone https://gerrit.wikimedia.org/r/pywikibot/core pywikibot
-cd pywikibot && git checkout 2.0
+git clone https://github.com/valhallasw/gerrit-reviewer-bot
+cd gerrit-reviewer-bot
+python3.13 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
 Then, to test:
 ``` bash
-$ python test.py Ic1250e94c2cbbd3cdc7f1f593be0e204bf735877
-Processing changeset  Ic1250e94c2cbbd3cdc7f1f593be0e204bf735877 Moved to TWN, test whether the deployment really works... by Merlijn van Deen
-  test.i18n.txt
-Suggested reviewers:  ['siebrand', 'Sumanah']
+.venv/bin/pytest
 ```
 
 The main algorithm for determining reviewers is the ReviewerFactory in
@@ -31,25 +25,34 @@ the Gerrit REST API. pop3bot.py reads Gerrit mails from a POP3 mailbox,
 retrieves the corresponding changes using the REST API, determines reviewers
 using the ReviewerFactory and finally adds reviewers via SSH.
 
-Changes in the ReviewerFactory can best be tested using test.py, as above. If
+Changes in the ReviewerFactory can best be tested using pytest. If
 more information is required from Gerrit, try to do this using options to the
 /changes/ REST API.
 
 Usage/deployment
 ----------------
-First, copy reviewer-bot's id_rsa and config.py to the working directory. Then:
+The bot runs on [Wikimedia Toolforge](https://wikitech.wikimedia.org/wiki/Portal:Toolforge)
+as the `gerrit-reviewer-bot` tool, scheduled via `k8s-jobs.yaml`.
+
+To get access, request membership at https://toolsadmin.wikimedia.org/tools/id/gerrit-reviewer-bot.
+
+To deploy changes:
 ``` bash
-source bin/activate
-python pop3bot.py
+ssh <your-wikitech-username>@login.toolforge.org
+become gerrit-reviewer-bot
+cd ~/src/gerrit-reviewer-bot
+git pull
+toolforge jobs load k8s-jobs.yaml
 ```
 
-Config.py is a simple file containing
-``` python
-username = 'gmailusername@gmail.com'
-password = 'whateveryourpasswordis'
+To set up the venv for manual runs on the bastion (only needed once, or after Python upgrades):
+``` bash
+python3.13 -m venv --without-pip ~/venv-tf-python313
+curl -sSf https://bootstrap.pypa.io/get-pip.py | ~/venv-tf-python313/bin/python
+~/venv-tf-python313/bin/pip install -r requirements.txt
 ```
-(the gmail pop server is hard-coded at the moment)
 
-This will start a single run. Wrap it in a loop with a sleep or use cron to use it constantly.
-
-
+To do a manual test run:
+``` bash
+bash ~/src/gerrit-reviewer-bot/gerrit_reviewer_bot_tf-python313.sh
+```
