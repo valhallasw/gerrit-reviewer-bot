@@ -13,6 +13,7 @@ g = GerritREST('https://gerrit.wikimedia.org/r')
 changeset = g.get_changeset(sys.argv[1])
 if not changeset:
     print("%r not found..." % (sys.argv[1]))
+    exit(1)
 
 rf = ReviewerFactory()
 reviewers = rf.get_reviewers_for_changeset(changeset)
