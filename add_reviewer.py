@@ -68,7 +68,9 @@ class ReviewerFactory:
 
         return reviewer, modulo, filere, matchall, changedfiles
 
-    def _reviewer_generator(self, project: str, changedfiles: list[str], addedfiles: list[str] | None = None) -> Generator[tuple[str, int], None, None]:
+    def _reviewer_generator(
+        self, project: str, changedfiles: list[str], addedfiles: list[str] | None = None
+    ) -> Generator[tuple[str, int], None, None]:
         if addedfiles is None:
             addedfiles = []
         tree = self.objecttree
@@ -93,7 +95,9 @@ class ReviewerFactory:
                         logger.debug(lxml.objectify.dump(sibling))
                         yield reviewer, modulo
 
-    def _filter_reviewers(self, reviewers: Iterable[tuple[str, int]], owner_name: str, changeset_number: int) -> Generator[str, None, None]:
+    def _filter_reviewers(
+        self, reviewers: Iterable[tuple[str, int]], owner_name: str, changeset_number: int
+    ) -> Generator[str, None, None]:
         if owner_name.lower() == 'l10n-bot':
             logger.debug('Skipping l10n-bot')
             return
