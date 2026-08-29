@@ -28,8 +28,8 @@ class GerritREST:
             * any parameters taken by the REST endpoint (via kwargs)
         """
         r = self._session.get(self._url + '/%s/' % name, params=kwargs)
-        realjson = r.text[5:]  # strips anti-XSS prefix
-        return json.loads(realjson)
+        r.raise_for_status()
+        return json.loads(r.text[5:])  # strips anti-XSS prefix
 
     def __getattr__(self, name):
         """ Provides access to any APIs not yet implemented """
