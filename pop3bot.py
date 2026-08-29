@@ -1,9 +1,9 @@
 import os
 import poplib
+import email.message
 import email.parser
 import logging
-from email.message import Message
-from typing import Iterable, Dict, Tuple
+from collections.abc import Iterable
 
 import gerrit_rest
 from add_reviewer import ReviewerFactory, add_reviewers
@@ -40,7 +40,7 @@ def mail_generator(mailbox) -> Iterable[str]:
         mailbox.dele(i)
 
 
-def message_generator(emails: Iterable[bytes]) -> Iterable[Tuple[Message, str]]:
+def message_generator(emails: Iterable[bytes]) -> Iterable[tuple[email.message.Message, str]]:
     p = email.parser.BytesParser()
     for mail in emails:
         mail = p.parsebytes(mail)
@@ -55,7 +55,7 @@ def message_generator(emails: Iterable[bytes]) -> Iterable[Tuple[Message, str]]:
         yield mail, m.get_payload(decode=True).decode('utf-8', 'replace')
 
 
-def gerritmail_generator(generator: Iterable[Tuple[Message, str]]) -> Iterable[Dict[str, str]]:
+def gerritmail_generator(generator: Iterable[tuple[email.message.Message, str]]) -> Iterable[dict[str, str]]:
     for message, contents in generator:
         mi = dict(list(message.items()))
         subject = mi.get('Subject', 'Unknown')
@@ -80,7 +80,7 @@ def gerritmail_generator(generator: Iterable[Tuple[Message, str]]) -> Iterable[D
             logger.warning("Skipping; Contents: %s", contents)
 
 
-def new_changeset_generator(g: gerrit_rest.GerritREST, mail_generator: Iterable[Dict[str, str]]) -> Iterable[Dict]:
+def new_changeset_generator(g: gerrit_rest.GerritREST, mail_generator: Iterable[dict[str, str]]) -> Iterable[dict]:
     for mail in mail_generator:
         mt = mail.get('X-Gerrit-MessageType', '')
         ps = mail.get('Gerrit-PatchSet', '')
