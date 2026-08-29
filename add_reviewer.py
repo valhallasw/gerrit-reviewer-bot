@@ -1,7 +1,7 @@
 import subprocess
 import re
 import logging
-from pipes import quote
+from shlex import quote
 from fnmatch import fnmatch
 
 import requests
