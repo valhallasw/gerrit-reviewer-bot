@@ -13,7 +13,6 @@ logger = logging.getLogger('add_reviewers')
 
 
 def call_utf8(command: list[str], *args, **kwargs) -> int:
-    command = [part.encode('utf-8') for part in command]
     return subprocess.call(command, *args, **kwargs)
 
 
