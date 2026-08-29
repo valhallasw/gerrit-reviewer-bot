@@ -27,7 +27,7 @@ class ReviewerFactory(object):
     def data(self):
         if hasattr(self, '_data'):
             return self._data
-        return requests.get("https://www.mediawiki.org/w/api.php?format=json&action=parse&page=Git/Reviewers&prop=parsetree").json()
+        return requests.get("https://www.mediawiki.org/w/api.php?format=json&action=parse&page=Git/Reviewers&prop=parsetree", headers={"User-Agent": "gerrit-reviewer-bot/1.0 (https://github.com/valhallasw/gerrit-reviewer-bot)"}).json()
 
     @property
     def objecttree(self):
