@@ -111,7 +111,7 @@ class ReviewerFactory:
             if ((changeset_number + i) % modulo == 0):
                 yield reviewer
             else:
-                logger.debug('Skipping %r due to modulo')
+                logger.debug('Skipping %r due to modulo', reviewer)
             i += 1
 
     def get_reviewers_for_changeset(self, changeset: dict) -> list[str] | Iterable[str]:
