@@ -36,7 +36,7 @@ class GerritREST(object):
         wrapper.__name__ = name
         return wrapper
 
-    def changes(self, q="", n=25, o=[]):
+    def changes(self, q="", n=25, o=None):
         """ Submits a request to the /changes/ REST API. Parameters:
             * q - the query string,
             * n - the maximum number of results to return - 25 by default,
@@ -45,9 +45,13 @@ class GerritREST(object):
             See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html
             for more details. """
 
+        if o is None:
+            o = []
         return self._request('changes', q=q, n=n, o=o)
 
-    def get_changeset(self, changeid, o=['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_ACCOUNTS']):
+    def get_changeset(self, changeid, o=None):
+        if o is None:
+            o = ['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_ACCOUNTS']
         matchingchanges = self.changes(changeid, n=1, o=o)
         if matchingchanges:
             return matchingchanges[0]

@@ -68,7 +68,9 @@ class ReviewerFactory(object):
 
         return reviewer, modulo, filere, matchall, changedfiles
 
-    def _reviewer_generator(self, project, changedfiles, addedfiles=[]):
+    def _reviewer_generator(self, project, changedfiles, addedfiles=None):
+        if addedfiles is None:
+            addedfiles = []
         tree = self.objecttree
 
         for section in tree.iter('h'):
