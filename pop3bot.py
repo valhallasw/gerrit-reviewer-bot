@@ -10,7 +10,7 @@ from add_reviewer import ReviewerFactory, add_reviewers
 
 # monkey patch max line length for poplib
 # as gmail sometimes sends > 2048 char lines
-poplib._MAXLINE = 1024 * 1024
+poplib._MAXLINE = 1024 * 1024  # type: ignore[attr-defined]
 
 logger = logging.getLogger('pop3bot')
 
@@ -29,7 +29,7 @@ def mkmailbox(debug=0):
     return mailbox
 
 
-def mail_generator(mailbox) -> Iterable[str]:
+def mail_generator(mailbox) -> Iterable[bytes]:
     """ RETRieves the contents of mails, yields those
         and DELEtes them before the next mail is RETRieved """
     nmails, octets = mailbox.stat()
@@ -42,17 +42,17 @@ def mail_generator(mailbox) -> Iterable[str]:
 
 def message_generator(emails: Iterable[bytes]) -> Iterable[tuple[email.message.Message, str]]:
     p = email.parser.BytesParser()
-    for mail in emails:
-        mail = p.parsebytes(mail)
+    for raw in emails:
+        msg = p.parsebytes(raw)
         # if mail is multipart-mime (probably not from gerrit)
         # mail.get_payload() is a list rather than a string
         # and mail.get_payload(decode=True) returns None
 
-        m = mail
+        m = msg
         while isinstance(m.get_payload(), list):
-            m = m.get_payload()[0]
+            m = m.get_payload()[0]  # type: ignore[assignment,index]
 
-        yield mail, m.get_payload(decode=True).decode('utf-8', 'replace')
+        yield msg, m.get_payload(decode=True).decode('utf-8', 'replace')  # type: ignore[union-attr]
 
 
 def gerritmail_generator(generator: Iterable[tuple[email.message.Message, str]]) -> Iterable[dict[str, str]]:
