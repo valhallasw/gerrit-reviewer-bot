@@ -85,25 +85,30 @@ class ReviewerFactory:
                     else:
                         result = any(filere.search(file) for file in changedfiles)
                     if result:
-                        self.logger.debug('* MATCH in in section %r:' % name)
+                        self.logger.debug('* MATCH in section %r:' % name)
                         self.logger.debug(lxml.objectify.dump(sibling))
-                        yield reviewer, modulo
+                        yield reviewer, modulo, name
 
     def _filter_reviewers(
-        self, reviewers: Iterable[tuple[str, int]], owner_name: str, changeset_number: int
+        self, reviewers: Iterable[tuple[str, int, str]], owner_name: str, changeset_number: int
     ) -> Generator[str, None, None]:
         if owner_name.lower() == 'l10n-bot':
             self.logger.debug('Skipping l10n-bot')
             return
 
+        seen: set[str] = set()
         i = 0
-        for (reviewer, modulo) in reviewers:
+        for (reviewer, modulo, section) in reviewers:
             if reviewer.lower() == owner_name.lower():
                 self.logger.debug('Skipping owner %r' % reviewer)
                 continue
 
             if ((changeset_number + i) % modulo == 0):
-                yield reviewer
+                if reviewer.lower() not in seen:
+                    seen.add(reviewer.lower())
+                    yield reviewer
+                else:
+                    self.logger.debug('Skipping duplicate %r matched in section %r', reviewer, section)
             else:
                 self.logger.debug('Skipping %r due to modulo', reviewer)
             i += 1
