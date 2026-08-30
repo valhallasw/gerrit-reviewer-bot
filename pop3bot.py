@@ -144,9 +144,9 @@ def compare_tracks(
     secondary_ids = set(secondary)
 
     for change_id in primary_ids - secondary_ids:
-        logger.info("REST track: missing change %s", change_id)
+        logger.info("REST track: change only in POP3 track: %s (reviewers: %r)", change_id, sorted(primary[change_id]))
     for change_id in secondary_ids - primary_ids:
-        logger.info("REST track: extra change %s", change_id)
+        logger.info("REST track: change only in REST track: %s (reviewers: %r)", change_id, sorted(secondary[change_id]))
     for change_id in primary_ids & secondary_ids:
         p = sorted(primary[change_id])
         s = sorted(secondary[change_id])
@@ -175,20 +175,26 @@ def run_pop3_track(g: gerrit_rest.GerritREST, RF: ReviewerFactory, authoritative
     return results
 
 
-def run_rest_track(g: gerrit_rest.GerritREST, RF: ReviewerFactory, last_timestamp: str, authoritative: bool) -> tuple[dict[str, list[str]], str]:
-    results: dict[str, list[str]] = {}
+def fetch_rest_changesets(g: gerrit_rest.GerritREST, last_timestamp: str) -> tuple[list[dict], str]:
     next_timestamp = current_timestamp()
     changesets = g.new_changes_since(last_timestamp)
     logger.info("%i changesets to process via REST (since %s)", len(changesets), last_timestamp)
+    return changesets, next_timestamp
+
+
+def process_rest_changesets(RF: ReviewerFactory, changesets: list[dict], authoritative: bool) -> dict[str, list[str]]:
+    results: dict[str, list[str]] = {}
     for changeset in changesets:
         try:
             reviewers = list(RF.get_reviewers_for_changeset(changeset))
             if authoritative:
                 add_reviewers(changeset['id'], reviewers)
+            elif reviewers:
+                logger.info("REST track (read-only): would add reviewers for %s: %r", changeset['change_id'], reviewers)
             results[changeset['change_id']] = reviewers
         except Exception:
             logger.exception("Exception in REST track for changeset %r", changeset)
-    return results, next_timestamp
+    return results
 
 
 def seed_last_timestamp() -> str:
@@ -227,24 +233,29 @@ def main():
         run_pop3_track(g, RF, authoritative=True)
 
     elif source == 'both':
-        primary_results = run_pop3_track(g, RF, authoritative=True)
         last_timestamp = get_last_timestamp(seed_if_missing=True)
         if last_timestamp is None:
             logger.warning("REST track skipped: could not determine last timestamp")
+            run_pop3_track(g, RF, authoritative=True)
         else:
             try:
-                secondary_results, next_timestamp = run_rest_track(g, RF, last_timestamp, authoritative=False)
+                rest_changesets, next_timestamp = fetch_rest_changesets(g, last_timestamp)
+            except Exception:
+                logger.exception("REST track fetch failed")
+                run_pop3_track(g, RF, authoritative=True)
+            else:
+                primary_results = run_pop3_track(g, RF, authoritative=True)
+                secondary_results = process_rest_changesets(RF, rest_changesets, authoritative=False)
                 compare_tracks(primary_results, secondary_results)
                 write_last_timestamp(next_timestamp)
-            except Exception:
-                logger.exception("REST track failed")
 
     elif source == 'rest':
         last_timestamp = get_last_timestamp(seed_if_missing=True)
         if last_timestamp is None:
             logger.warning("REST track skipped: could not determine last timestamp")
         else:
-            results, next_timestamp = run_rest_track(g, RF, last_timestamp, authoritative=True)
+            changesets, next_timestamp = fetch_rest_changesets(g, last_timestamp)
+            process_rest_changesets(RF, changesets, authoritative=True)
             write_last_timestamp(next_timestamp)
 
 
