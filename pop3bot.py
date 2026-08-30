@@ -1,6 +1,16 @@
 import os
 import sys
+import traceback
 import poplib
+from datetime import datetime, timezone
+
+
+def _excepthook(exc_type, exc_value, exc_tb):
+    print(datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'), file=sys.stderr)
+    traceback.print_exception(exc_type, exc_value, exc_tb)
+
+
+sys.excepthook = _excepthook
 import email.message
 import email.parser
 import logging
