@@ -3,6 +3,12 @@ username = "<pop3-username>"
 password = "<pop3-password>"
 pophost = "<pop3-host>"
 
+# Changeset source: 'pop3', 'both', or 'rest'
+# 'pop3': use POP3 mailbox only (default)
+# 'both': POP3 is authoritative, REST API runs read-only for comparison
+# 'rest': REST API is authoritative, POP3 not used
+changeset_source = "pop3"
+
 # Error email settings (used by error_email_k8s.py)
 smtp_host = "mail.tools.wmflabs.org"
 error_mail_from = "tools.gerrit-reviewer-bot <tools.gerrit-reviewer-bot@tools.wmflabs.org>"

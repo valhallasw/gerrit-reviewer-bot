@@ -3,7 +3,7 @@ Gerrit reviewer bot for WMF's Gerrit.
 This bot reads reviewers from https://www.mediawiki.org/wiki/Git/Reviewers and
 adds them to changes in Gerrit.
 
-Changes are read from SSH ('add_reviewers.py') or POP3 ('pop3bot.py').
+Changes are read from SSH ('add_reviewers.py'), POP3 ('pop3bot.py'), or the Gerrit REST API ('pop3bot.py' with `changeset_source = 'rest'`).
 
 Development
 -----------
@@ -44,6 +44,7 @@ not committed to the repository as it contains credentials.
 | `smtp_host`         | SMTP server for error emails                     |
 | `error_mail_from`   | Sender address for error emails                  |
 | `error_mail_to`     | Recipient(s) for error emails (comma-separated)  |
+| `changeset_source`  | Changeset source: `pop3` (default), `both`, or `rest`. `both` runs the REST API track in read-only mode alongside POP3 for comparison. `rest` uses the REST API as the authoritative source. When switching to `both` or `rest`, `last_change_number.txt` is seeded automatically on the first run. |
 
 The following environment variables are also supported:
 

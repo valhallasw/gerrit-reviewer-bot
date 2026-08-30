@@ -5,6 +5,7 @@ apicache
 config.py
 debug.out
 known_hosts
+last_change_number.txt
 
 .idea
 .venv

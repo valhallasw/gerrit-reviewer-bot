@@ -59,3 +59,10 @@ class GerritREST:
             return matchingchanges[0]
         else:
             return None
+
+    def new_changes_since(self, last_number: int) -> list[dict]:
+        return self.changes(
+            q=f'status:open -is:wip change:>{last_number}',
+            n=100,
+            o=['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_ACCOUNTS']
+        )
