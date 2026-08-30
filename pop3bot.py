@@ -117,21 +117,23 @@ def new_changeset_generator(g: gerrit_rest.GerritREST, mail_generator: Iterable[
             yield matchingchange
 
 
-LAST_NUMBER_FILE = Path('last_change_number.txt')
+LAST_TIMESTAMP_FILE = Path('last_change_timestamp.txt')
 VALID_SOURCES = ('pop3', 'both', 'rest')
 
 
-def read_last_number() -> int | None:
+def read_last_timestamp() -> str | None:
     try:
-        return int(LAST_NUMBER_FILE.read_text().strip())
+        return LAST_TIMESTAMP_FILE.read_text().strip()
     except FileNotFoundError:
         return None
-    except ValueError:
-        return None
 
 
-def write_last_number(number: int) -> None:
-    LAST_NUMBER_FILE.write_text(str(number))
+def write_last_timestamp(timestamp: str) -> None:
+    LAST_TIMESTAMP_FILE.write_text(timestamp)
+
+
+def current_timestamp() -> str:
+    return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
 
 def compare_tracks(
@@ -173,36 +175,34 @@ def run_pop3_track(g: gerrit_rest.GerritREST, RF: ReviewerFactory, authoritative
     return results
 
 
-def run_rest_track(g: gerrit_rest.GerritREST, RF: ReviewerFactory, last_number: int, authoritative: bool) -> tuple[dict[str, list[str]], int]:
+def run_rest_track(g: gerrit_rest.GerritREST, RF: ReviewerFactory, last_timestamp: str, authoritative: bool) -> tuple[dict[str, list[str]], str]:
     results: dict[str, list[str]] = {}
-    max_number = last_number
-    for changeset in g.new_changes_since(last_number):
+    next_timestamp = current_timestamp()
+    for changeset in g.new_changes_since(last_timestamp):
         try:
             reviewers = list(RF.get_reviewers_for_changeset(changeset))
             if authoritative:
                 add_reviewers(changeset['id'], reviewers)
             results[changeset['change_id']] = reviewers
-            max_number = max(max_number, changeset['_number'])
         except Exception:
             logger.exception("Exception in REST track for changeset %r", changeset)
-    return results, max_number
+    return results, next_timestamp
 
 
-def seed_last_number(g: gerrit_rest.GerritREST) -> int:
-    changes = g.changes(q='status:open', n=1, o=[])
-    number = changes[0]['_number'] if changes else 0
-    write_last_number(number)
-    logger.info("Seeded %s with change number %i", LAST_NUMBER_FILE, number)
-    return number
+def seed_last_timestamp() -> str:
+    timestamp = current_timestamp()
+    write_last_timestamp(timestamp)
+    logger.info("Seeded %s with timestamp %s", LAST_TIMESTAMP_FILE, timestamp)
+    return timestamp
 
 
-def get_last_number(g: gerrit_rest.GerritREST, seed_if_missing: bool) -> int | None:
-    number = read_last_number()
-    if number is None:
+def get_last_timestamp(seed_if_missing: bool) -> str | None:
+    timestamp = read_last_timestamp()
+    if timestamp is None:
         if seed_if_missing:
-            return seed_last_number(g)
+            return seed_last_timestamp()
         return None
-    return number
+    return timestamp
 
 
 def main():
@@ -226,24 +226,24 @@ def main():
 
     elif source == 'both':
         primary_results = run_pop3_track(g, RF, authoritative=True)
-        last_number = get_last_number(g, seed_if_missing=True)
-        if last_number is None:
-            logger.warning("REST track skipped: could not determine last change number")
+        last_timestamp = get_last_timestamp(seed_if_missing=True)
+        if last_timestamp is None:
+            logger.warning("REST track skipped: could not determine last timestamp")
         else:
             try:
-                secondary_results, max_number = run_rest_track(g, RF, last_number, authoritative=False)
+                secondary_results, next_timestamp = run_rest_track(g, RF, last_timestamp, authoritative=False)
                 compare_tracks(primary_results, secondary_results)
-                write_last_number(max_number)
+                write_last_timestamp(next_timestamp)
             except Exception:
                 logger.exception("REST track failed")
 
     elif source == 'rest':
-        last_number = get_last_number(g, seed_if_missing=True)
-        if last_number is None:
-            logger.warning("REST track skipped: could not determine last change number")
+        last_timestamp = get_last_timestamp(seed_if_missing=True)
+        if last_timestamp is None:
+            logger.warning("REST track skipped: could not determine last timestamp")
         else:
-            results, max_number = run_rest_track(g, RF, last_number, authoritative=True)
-            write_last_number(max_number)
+            results, next_timestamp = run_rest_track(g, RF, last_timestamp, authoritative=True)
+            write_last_timestamp(next_timestamp)
 
 
 if __name__ == "__main__":
