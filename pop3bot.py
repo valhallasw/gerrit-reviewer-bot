@@ -178,7 +178,9 @@ def run_pop3_track(g: gerrit_rest.GerritREST, RF: ReviewerFactory, authoritative
 def run_rest_track(g: gerrit_rest.GerritREST, RF: ReviewerFactory, last_timestamp: str, authoritative: bool) -> tuple[dict[str, list[str]], str]:
     results: dict[str, list[str]] = {}
     next_timestamp = current_timestamp()
-    for changeset in g.new_changes_since(last_timestamp):
+    changesets = g.new_changes_since(last_timestamp)
+    logger.info("%i changesets to process via REST (since %s)", len(changesets), last_timestamp)
+    for changeset in changesets:
         try:
             reviewers = list(RF.get_reviewers_for_changeset(changeset))
             if authoritative:
