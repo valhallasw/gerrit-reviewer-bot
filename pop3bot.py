@@ -1,4 +1,5 @@
 import os
+import sys
 import poplib
 import email.message
 import email.parser
@@ -108,7 +109,8 @@ def new_changeset_generator(g: gerrit_rest.GerritREST, mail_generator: Iterable[
 def main():
     logging.basicConfig(
         level=os.environ.get('LOG_LEVEL', 'INFO').upper(),
-        format='%(asctime)s %(name)s %(levelname)s %(message)s'
+        format='%(asctime)s %(name)s %(levelname)s %(message)s',
+        stream=sys.stdout
     )
     g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
     RF = ReviewerFactory()
