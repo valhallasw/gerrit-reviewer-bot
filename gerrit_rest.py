@@ -66,4 +66,6 @@ class GerritREST:
             n=100,
             o=['CURRENT_REVISION', 'CURRENT_FILES', 'DETAILED_ACCOUNTS']
         )
-        return [c for c in changes if list(c['revisions'].values())[0]['_number'] == 1]
+        return [c for c in changes
+                if list(c['revisions'].values())[0]['_number'] == 1
+                and c['created'] > last_timestamp]
