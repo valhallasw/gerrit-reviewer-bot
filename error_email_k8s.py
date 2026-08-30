@@ -8,7 +8,7 @@ except FileNotFoundError:
     print("OK")
     exit(0)
 
-errorlines = [line for line in errlog if "Running as task" not in line]
+errorlines = errlog
 
 if not any(errorlines):
     print("OK")
