@@ -227,29 +227,32 @@ def main():
     logger.info("Changeset source: %s", source)
 
     g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
-    RF = ReviewerFactory()
 
     if source == 'pop3':
+        RF = ReviewerFactory(logger=logging.getLogger('add_reviewers.pop3'))
         run_pop3_track(g, RF, authoritative=True)
 
     elif source == 'both':
+        RF_pop3 = ReviewerFactory(logger=logging.getLogger('add_reviewers.pop3'))
+        RF_rest = ReviewerFactory(logger=logging.getLogger('add_reviewers.rest'))
         last_timestamp = get_last_timestamp(seed_if_missing=True)
         if last_timestamp is None:
             logger.warning("REST track skipped: could not determine last timestamp")
-            run_pop3_track(g, RF, authoritative=True)
+            run_pop3_track(g, RF_pop3, authoritative=True)
         else:
             try:
                 rest_changesets, next_timestamp = fetch_rest_changesets(g, last_timestamp)
             except Exception:
                 logger.exception("REST track fetch failed")
-                run_pop3_track(g, RF, authoritative=True)
+                run_pop3_track(g, RF_pop3, authoritative=True)
             else:
-                primary_results = run_pop3_track(g, RF, authoritative=True)
-                secondary_results = process_rest_changesets(RF, rest_changesets, authoritative=False)
+                primary_results = run_pop3_track(g, RF_pop3, authoritative=True)
+                secondary_results = process_rest_changesets(RF_rest, rest_changesets, authoritative=False)
                 compare_tracks(primary_results, secondary_results)
                 write_last_timestamp(next_timestamp)
 
     elif source == 'rest':
+        RF = ReviewerFactory(logger=logging.getLogger('add_reviewers.rest'))
         last_timestamp = get_last_timestamp(seed_if_missing=True)
         if last_timestamp is None:
             logger.warning("REST track skipped: could not determine last timestamp")

@@ -9,16 +9,13 @@ import requests
 import lxml.objectify
 
 
-logger = logging.getLogger('add_reviewers')
-
-
-
 class ReviewerFactory:
     nofilere = re.compile('')
 
-    def __init__(self, page: str = "Git/Reviewers", template: str = "Gerrit-reviewer") -> None:
+    def __init__(self, page: str = "Git/Reviewers", template: str = "Gerrit-reviewer", logger: logging.Logger | None = None) -> None:
         self.page = page
         self.template = template
+        self.logger = logger or logging.getLogger('add_reviewers')
 
     @property
     def data(self):
@@ -56,11 +53,11 @@ class ReviewerFactory:
                     regexp = part.value.text or part.value.ext.inner.text
                     filere = re.compile(regexp, flags=re.DOTALL | re.IGNORECASE)
                 except re.error:
-                    logging.error("Could not process file regexp %r -- ignoring." % regexp)
+                    self.logger.error("Could not process file regexp %r -- ignoring." % regexp)
             elif part.name == "match_all_files" or part.value.text == "match_all_files":
                 matchall = True
             elif part.name == "only_match_new_files" or part.value.text == "only_match_new_files":
-                logger.info("%r:%r -> only checking new files" % (name, reviewer))
+                self.logger.info("%r:%r -> only checking new files" % (name, reviewer))
                 changedfiles = addedfiles
 
         return reviewer, modulo, filere, matchall, changedfiles
@@ -88,27 +85,27 @@ class ReviewerFactory:
                     else:
                         result = any(filere.search(file) for file in changedfiles)
                     if result:
-                        logger.debug('* MATCH in in section %r:' % name)
-                        logger.debug(lxml.objectify.dump(sibling))
+                        self.logger.debug('* MATCH in in section %r:' % name)
+                        self.logger.debug(lxml.objectify.dump(sibling))
                         yield reviewer, modulo
 
     def _filter_reviewers(
         self, reviewers: Iterable[tuple[str, int]], owner_name: str, changeset_number: int
     ) -> Generator[str, None, None]:
         if owner_name.lower() == 'l10n-bot':
-            logger.debug('Skipping l10n-bot')
+            self.logger.debug('Skipping l10n-bot')
             return
 
         i = 0
         for (reviewer, modulo) in reviewers:
             if reviewer.lower() == owner_name.lower():
-                logger.debug('Skipping owner %r' % reviewer)
+                self.logger.debug('Skipping owner %r' % reviewer)
                 continue
 
             if ((changeset_number + i) % modulo == 0):
                 yield reviewer
             else:
-                logger.debug('Skipping %r due to modulo', reviewer)
+                self.logger.debug('Skipping %r due to modulo', reviewer)
             i += 1
 
     def get_reviewers_for_changeset(self, changeset: dict) -> Iterable[str]:
@@ -119,19 +116,19 @@ class ReviewerFactory:
             changedfiles = [k for (k, v) in list(changes.items())]
             addedfiles = [k for (k, v) in list(changes.items()) if 'status' in v and v['status'] == 'A']
         except Exception:
-            logger.exception("Could not extract changed files from changeset %r", changeset)
+            self.logger.exception("Could not extract changed files from changeset %r", changeset)
             changedfiles = addedfiles = []
 
         project = changeset['project']
         number = changeset['_number']
 
-        logger.info("Processing changeset %s %s by %s", changeset['change_id'], changeset['subject'], owner)
+        self.logger.info("Processing changeset %s %s by %s", changeset['change_id'], changeset['subject'], owner)
         for f in changedfiles:
             prefix = "A" if f in addedfiles else "u"
-            logger.info("%s %s", prefix, f)
+            self.logger.info("%s %s", prefix, f)
 
         if changeset['status'] in ['ABANDONED', 'MERGED']:
-            logger.info("Changeset was %s; not adding reviewers", changeset['status'])
+            self.logger.info("Changeset was %s; not adding reviewers", changeset['status'])
             return []
 
         reviewers = self._filter_reviewers(self._reviewer_generator(project, changedfiles, addedfiles), owner, number)
@@ -140,6 +137,7 @@ class ReviewerFactory:
 
 
 def add_reviewers(changeid, reviewers):
+    _logger = logging.getLogger('add_reviewers')
     reviewers = list(reviewers)
     if reviewers:
         params = []
@@ -148,7 +146,7 @@ def add_reviewers(changeid, reviewers):
             params.append(reviewer)
         params.append(changeid)
         command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
-        logger.info("Running: %s", command)
+        _logger.info("Running: %s", command)
         callcmd = [
             "ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes",
             "-o", "UserKnownHostsFile=known_hosts", "-i", "id_rsa",
