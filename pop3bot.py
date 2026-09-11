@@ -264,9 +264,13 @@ def main():
         if last_timestamp is None:
             logger.warning("REST track skipped: could not determine last timestamp")
         else:
-            changesets, next_timestamp = fetch_rest_changesets(g, last_timestamp)
-            process_rest_changesets(RF, changesets, authoritative=True)
-            write_last_timestamp(next_timestamp)
+            try:
+                changesets, next_timestamp = fetch_rest_changesets(g, last_timestamp)
+            except Exception:
+                logger.exception("REST track fetch failed")
+            else:
+                process_rest_changesets(RF, changesets, authoritative=True)
+                write_last_timestamp(next_timestamp)
 
 
 if __name__ == "__main__":
