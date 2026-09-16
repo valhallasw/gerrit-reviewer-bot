@@ -5,7 +5,7 @@ echo
 echo `date`: Running as task $HOSTNAME
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
-curl -sSf https://config-master.wikimedia.org/known_hosts -o known_hosts
+curl -sSf https://config-master.wikimedia.org/known_hosts -o known_hosts || true
 
 export PYTHONIOENCODING=utf-8
 timeout 1h $HOME/venv-tf-python313/bin/python pop3bot.py
