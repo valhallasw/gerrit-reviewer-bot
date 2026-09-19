@@ -40,6 +40,7 @@ def mkmailbox(debug=0):
             mailbox.set_debuglevel(debug)
             mailbox.user(username)
             mailbox.pass_(password)
+            mailbox.sock.settimeout(30)
             return mailbox
         except (poplib.error_proto, OSError) as e:
             if attempt == 2:
