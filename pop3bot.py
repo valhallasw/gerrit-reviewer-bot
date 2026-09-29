@@ -35,6 +35,7 @@ def mkmailbox(debug=0):
     password = config.password
 
     for attempt in range(3):
+        mailbox = None
         try:
             mailbox = poplib.POP3_SSL(config.pophost, '995', timeout=30)
             mailbox.set_debuglevel(debug)
@@ -43,10 +44,15 @@ def mkmailbox(debug=0):
             mailbox.sock.settimeout(30)
             return mailbox
         except (poplib.error_proto, OSError) as e:
+            if mailbox is not None:
+                try:
+                    mailbox.quit()
+                except Exception:
+                    pass
             if attempt == 2:
                 raise
-            logger.warning("POP3 connection attempt %d failed: %s; retrying in 5s", attempt + 1, e)
-            time.sleep(5)
+            logger.warning("POP3 connection attempt %d failed: %s; retrying in %ds", attempt + 1, e, (attempt + 1) * 5)
+            time.sleep((attempt + 1) * 5)
 
 
 def mail_generator(mailbox) -> Iterable[bytes]:
