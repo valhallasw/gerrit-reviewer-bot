@@ -231,7 +231,42 @@ def get_last_timestamp(seed_if_missing: bool) -> str | None:
     return timestamp
 
 
-def main():
+def _run_both_track(g: gerrit_rest.GerritREST) -> None:
+    RF_pop3 = ReviewerFactory(logger=logging.getLogger('add_reviewers.pop3'))
+    RF_rest = ReviewerFactory(logger=logging.getLogger('add_reviewers.rest'))
+    last_timestamp = get_last_timestamp(seed_if_missing=True)
+    if last_timestamp is None:
+        logger.warning("REST track skipped: could not determine last timestamp")
+        run_pop3_track(g, RF_pop3, authoritative=True)
+        return
+    try:
+        rest_changesets, next_timestamp = fetch_rest_changesets(g, last_timestamp)
+    except Exception:
+        logger.exception("REST track fetch failed")
+        run_pop3_track(g, RF_pop3, authoritative=True)
+        return
+    primary_results = run_pop3_track(g, RF_pop3, authoritative=True)
+    secondary_results = process_rest_changesets(RF_rest, rest_changesets, authoritative=False)
+    compare_tracks(primary_results, secondary_results)
+    write_last_timestamp(next_timestamp)
+
+
+def _run_rest_track(g: gerrit_rest.GerritREST) -> None:
+    RF = ReviewerFactory(logger=logging.getLogger('add_reviewers.rest'))
+    last_timestamp = get_last_timestamp(seed_if_missing=True)
+    if last_timestamp is None:
+        logger.warning("REST track skipped: could not determine last timestamp")
+        return
+    try:
+        changesets, next_timestamp = fetch_rest_changesets(g, last_timestamp)
+    except Exception:
+        logger.exception("REST track fetch failed")
+        return
+    process_rest_changesets(RF, changesets, authoritative=True)
+    write_last_timestamp(next_timestamp)
+
+
+def main() -> None:
     logging.basicConfig(
         level=os.environ.get('LOG_LEVEL', 'INFO').upper(),
         format='%(asctime)s %(name)s %(levelname)s %(message)s',
@@ -249,39 +284,10 @@ def main():
     if source == 'pop3':
         RF = ReviewerFactory(logger=logging.getLogger('add_reviewers.pop3'))
         run_pop3_track(g, RF, authoritative=True)
-
     elif source == 'both':
-        RF_pop3 = ReviewerFactory(logger=logging.getLogger('add_reviewers.pop3'))
-        RF_rest = ReviewerFactory(logger=logging.getLogger('add_reviewers.rest'))
-        last_timestamp = get_last_timestamp(seed_if_missing=True)
-        if last_timestamp is None:
-            logger.warning("REST track skipped: could not determine last timestamp")
-            run_pop3_track(g, RF_pop3, authoritative=True)
-        else:
-            try:
-                rest_changesets, next_timestamp = fetch_rest_changesets(g, last_timestamp)
-            except Exception:
-                logger.exception("REST track fetch failed")
-                run_pop3_track(g, RF_pop3, authoritative=True)
-            else:
-                primary_results = run_pop3_track(g, RF_pop3, authoritative=True)
-                secondary_results = process_rest_changesets(RF_rest, rest_changesets, authoritative=False)
-                compare_tracks(primary_results, secondary_results)
-                write_last_timestamp(next_timestamp)
-
+        _run_both_track(g)
     elif source == 'rest':
-        RF = ReviewerFactory(logger=logging.getLogger('add_reviewers.rest'))
-        last_timestamp = get_last_timestamp(seed_if_missing=True)
-        if last_timestamp is None:
-            logger.warning("REST track skipped: could not determine last timestamp")
-        else:
-            try:
-                changesets, next_timestamp = fetch_rest_changesets(g, last_timestamp)
-            except Exception:
-                logger.exception("REST track fetch failed")
-            else:
-                process_rest_changesets(RF, changesets, authoritative=True)
-                write_last_timestamp(next_timestamp)
+        _run_rest_track(g)
 
 
 if __name__ == "__main__":
