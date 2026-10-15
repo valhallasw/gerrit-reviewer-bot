@@ -1,7 +1,10 @@
+import pytest
+
 import add_reviewer
 import gerrit_rest
 
 
+@pytest.mark.online
 def test_gerrit_and_reviewer_factory():
     gerrit = gerrit_rest.GerritREST("https://gerrit.wikimedia.org/r")
     changeset = gerrit.get_changeset("1332184")
