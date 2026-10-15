@@ -18,11 +18,14 @@ class GerritREST:
         self._url = url.rstrip("/")
         self._session = requests.Session()
         retry = Retry(total=5, backoff_factor=1, status_forcelist=[502, 503, 504])
+        user_agent = (
+            f"Gerrit-Reviewer-Bot GerritREST python-requests/{requests.__version__}"
+        )
         self._session.mount("https://", HTTPAdapter(max_retries=retry))
         self._session.headers.update(
             {
                 "Accept": "application/json",
-                "User-Agent": f"Gerrit-Reviewer-Bot GerritREST python-requests/{requests.__version__}",  # noqa: E501
+                "User-Agent": user_agent,
             }
         )
 
@@ -69,15 +72,50 @@ class GerritREST:
         else:
             return None
 
+    def reviewer_updates(self, change_number: int | str) -> list[dict]:
+        """Return the change's reviewer_updates audit entries.
+
+        Uses the /changes/<id>/detail endpoint, which populates
+        reviewer_updates; the /changes/?q= query path returns it empty even
+        with the REVIEWER_UPDATES option, so it cannot be used here.
+        """
+        detail = self._request(f"changes/{change_number}/detail")
+        return detail.get("reviewer_updates", [])
+
+    def bot_has_acted(
+        self, change_number: int | str, bot_account_id: int, bot_username: str
+    ) -> bool:
+        """True if the bot ever added a reviewer to this change.
+
+        Reads the change's reviewer_updates audit log (append-only), matching
+        on the stable account id first and falling back to the username. This
+        is the "act once per change" guard for T267787: because it keys on who
+        *performed* the add (updated_by), it stays true even if every reviewer
+        the bot added was later removed — so the bot never re-adds opted-out
+        reviewers.
+        """
+        for update in self.reviewer_updates(change_number):
+            by = update.get("updated_by") or {}
+            if by.get("_account_id") == bot_account_id:
+                return True
+            if by.get("username") == bot_username:
+                return True
+        return False
+
     def new_changes_since(self, last_timestamp: str) -> list[dict]:
+        """Return open, non-WIP changes updated since last_timestamp.
+
+        Keyed on *update* time (not creation) so that a change which was
+        created WIP and later marked ready for review is surfaced — see
+        T267787. Callers must guard against re-processing a change the bot has
+        already acted on (see pop3bot's act-once check), because an update-based
+        query re-sees a change on every modification.
+        """
         changes = self.changes(
             q=f'status:open -is:wip after:"{last_timestamp}"',
             n=100,
             o=["CURRENT_REVISION", "CURRENT_FILES", "DETAILED_ACCOUNTS"],
         )
-        return [
-            c
-            for c in changes
-            if list(c["revisions"].values())[0]["_number"] == 1
-            and c["created"] > last_timestamp
-        ]
+        # 'after:' matches on last-update time, but filter explicitly too in
+        # case the stored timestamp granularity differs from Gerrit's.
+        return [c for c in changes if c["updated"] > last_timestamp]

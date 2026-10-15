@@ -205,6 +205,13 @@ def new_changeset_generator(
 LAST_TIMESTAMP_FILE = Path("last_change_timestamp.txt")
 VALID_SOURCES = ("pop3", "both", "rest")
 
+# The Gerrit account the bot uses to add reviewers. Used by the "act once per
+# change" guard (T267787): if this account already appears in a change's
+# reviewer_updates history, the bot has acted and must not act again — which
+# also prevents re-adding reviewers who removed themselves.
+BOT_ACCOUNT_ID = 578
+BOT_USERNAME = "reviewer-bot"
+
 # One-shot capture (T267787): forward a single un-WIP ("Set Ready For Review")
 # notification mail to the maintainers so its exact format can be turned into a
 # test fixture. Once this control file exists, no further samples are sent.
@@ -268,7 +275,7 @@ def run_pop3_track(
         for changeset in changesets:
             try:
                 reviewers = list(RF.get_reviewers_for_changeset(changeset))
-                if authoritative:
+                if authoritative and reviewers and not _bot_already_acted(g, changeset):
                     add_reviewers(changeset["id"], reviewers)
                 results[changeset["change_id"]] = reviewers
             except Exception:
@@ -289,15 +296,39 @@ def fetch_rest_changesets(
     return changesets, next_timestamp
 
 
+def _bot_already_acted(g: gerrit_rest.GerritREST, changeset: dict) -> bool:
+    """Act-once guard (T267787): has the bot already added reviewers here?
+
+    Returns True (skip) if the bot appears in the change's reviewer_updates
+    history. On any error querying Gerrit, returns False (do not skip) so a
+    transient failure cannot permanently suppress reviewer-adding — the worst
+    case is a duplicate add attempt, which Gerrit treats idempotently.
+    """
+    change_number = changeset.get("_number")
+    if change_number is None:
+        return False
+    try:
+        return g.bot_has_acted(change_number, BOT_ACCOUNT_ID, BOT_USERNAME)
+    except Exception:
+        logger.exception(
+            "Could not check reviewer history for %s; proceeding", change_number
+        )
+        return False
+
+
 def process_rest_changesets(
-    RF: ReviewerFactory, changesets: list[dict], authoritative: bool
+    g: gerrit_rest.GerritREST,
+    RF: ReviewerFactory,
+    changesets: list[dict],
+    authoritative: bool,
 ) -> dict[str, list[str]]:
     results: dict[str, list[str]] = {}
     for changeset in changesets:
         try:
             reviewers = list(RF.get_reviewers_for_changeset(changeset))
             if authoritative:
-                add_reviewers(changeset["id"], reviewers)
+                if reviewers and not _bot_already_acted(g, changeset):
+                    add_reviewers(changeset["id"], reviewers)
             elif reviewers:
                 logger.info(
                     "REST track (read-only): would add reviewers for %s: %r",
@@ -342,7 +373,7 @@ def _run_both_track(g: gerrit_rest.GerritREST) -> None:
         return
     primary_results = run_pop3_track(g, RF_pop3, authoritative=True)
     secondary_results = process_rest_changesets(
-        RF_rest, rest_changesets, authoritative=False
+        g, RF_rest, rest_changesets, authoritative=False
     )
     compare_tracks(primary_results, secondary_results)
     write_last_timestamp(next_timestamp)
@@ -359,7 +390,7 @@ def _run_rest_track(g: gerrit_rest.GerritREST) -> None:
     except Exception:
         logger.exception("REST track fetch failed")
         return
-    process_rest_changesets(RF, changesets, authoritative=True)
+    process_rest_changesets(g, RF, changesets, authoritative=True)
     write_last_timestamp(next_timestamp)
 
 
