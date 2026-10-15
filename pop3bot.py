@@ -99,50 +99,6 @@ def message_generator(
         yield msg, m.get_payload(decode=True).decode("utf-8", "replace")  # type: ignore[union-attr]
 
 
-def _forward_unwip_sample(message: email.message.Message, contents: str) -> None:
-    """Forward a single un-WIP notification mail to the maintainers (T267787).
-
-    Capture-only: this does not add reviewers. It exists so the exact format of
-    the "Set Ready For Review" mail can be turned into a test fixture. Guarded by
-    UNWIP_SAMPLE_FILE so at most one sample is ever sent.
-    """
-    import smtplib
-    from email.message import EmailMessage
-
-    import config
-
-    if UNWIP_SAMPLE_FILE.exists():
-        return
-
-    subject = message.get("Subject", "Unknown")
-    body = (
-        "gerrit-reviewer-bot captured a WIP->ready ('comment') notification mail "
-        "for analysis of T267787. The raw plain-text contents follow.\n\n"
-        "This is a one-time capture; no further samples will be sent.\n\n"
-        "-----------------------------------------------------------------------\n"
-        f"Subject: {subject}\n\n"
-        f"{contents}\n"
-        "-----------------------------------------------------------------------\n"
-    )
-
-    msg = EmailMessage()
-    msg.set_content(body)
-    msg["Subject"] = "Gerrit Reviewer Bot: un-WIP mail sample (T267787)"
-    msg["From"] = config.error_mail_from
-    msg["To"] = config.error_mail_to
-
-    try:
-        s = smtplib.SMTP(config.smtp_host)
-        s.send_message(msg)
-        s.quit()
-    except smtplib.SMTPException:
-        logger.exception("Failed to forward un-WIP sample mail")
-        return
-
-    UNWIP_SAMPLE_FILE.write_text(current_timestamp())
-    logger.info("Forwarded un-WIP sample mail to maintainers (T267787)")
-
-
 def gerritmail_generator(
     generator: Iterable[tuple[email.message.Message, str]],
 ) -> Iterable[dict[str, str]]:
@@ -163,11 +119,6 @@ def gerritmail_generator(
                 gerrit_data[k] = v.rstrip()
 
         logger.info("%s %s %s", subject, sender, gerrit_data.get("X-Gerrit-Change-Id"))
-
-        # One-shot capture of an un-WIP ("Set Ready For Review") sample mail for
-        # T267787. Capture-only: does not affect which mails are yielded below.
-        if gerrit_data.get("X-Gerrit-MessageType") == "comment":
-            _forward_unwip_sample(message, contents)
 
         if gerrit_data:
             yield gerrit_data
@@ -211,11 +162,6 @@ VALID_SOURCES = ("pop3", "both", "rest")
 # also prevents re-adding reviewers who removed themselves.
 BOT_ACCOUNT_ID = 578
 BOT_USERNAME = "reviewer-bot"
-
-# One-shot capture (T267787): forward a single un-WIP ("Set Ready For Review")
-# notification mail to the maintainers so its exact format can be turned into a
-# test fixture. Once this control file exists, no further samples are sent.
-UNWIP_SAMPLE_FILE = Path("unwip_sample_sent.txt")
 
 
 def read_last_timestamp() -> str | None:
