@@ -95,8 +95,14 @@ ssh <your-wikitech-username>@login.toolforge.org
 become gerrit-reviewer-bot
 cd ~/src/gerrit-reviewer-bot
 git pull
+~/venv-tf-python313/bin/pip install -r requirements.txt
 toolforge jobs load k8s-jobs.yaml
 ```
+
+The `pip install -r requirements.txt` step is required whenever runtime
+dependency pins change. Note that `requirements.txt` holds runtime
+dependencies only; dev/CI tooling lives in `requirements-dev.txt` and must not
+be installed into the production venv.
 
 To set up the venv for manual runs on the bastion (only needed once, or after Python upgrades):
 
