@@ -3,10 +3,19 @@ Gerrit reviewer bot for WMF's Gerrit.
 This bot reads reviewers from https://www.mediawiki.org/wiki/Git/Reviewers and
 adds them to changes in Gerrit.
 
-Changes are read from SSH ('add_reviewers.py'), POP3 ('pop3bot.py'), or the Gerrit REST API ('pop3bot.py' with `changeset_source = 'rest'`).
+Changes are read from SSH ('add_reviewers.py'), POP3 ('pop3bot.py'), or the Gerrit REST API ('pop3bot.py' with
+`changeset_source = 'rest'`).
+
+Reporting issues
+----------------
+Report bugs and feature requests in Phabricator under the
+[#gerrit-reviewer-bot](https://phabricator.wikimedia.org/tag/gerrit-reviewer-bot/)
+tag. The source code is hosted at
+https://github.com/valhallasw/gerrit-reviewer-bot.
 
 Development
 -----------
+
 ``` bash
 git clone https://github.com/valhallasw/gerrit-reviewer-bot
 cd gerrit-reviewer-bot
@@ -15,6 +24,7 @@ python3.13 -m venv .venv
 ```
 
 Then, to test:
+
 ``` bash
 .venv/bin/pytest
 ```
@@ -36,20 +46,20 @@ Runtime configuration is split between environment variables and `config.py`.
 Copy `config.py.example` to `config.py` and fill in the values. This file is
 not committed to the repository as it contains credentials.
 
-| Setting             | Description                                      |
-|---------------------|--------------------------------------------------|
-| `username`          | POP3 mailbox username                            |
-| `password`          | POP3 mailbox password                            |
-| `pophost`           | POP3 server hostname                             |
-| `smtp_host`         | SMTP server for error emails                     |
-| `error_mail_from`   | Sender address for error emails                  |
-| `error_mail_to`     | Recipient(s) for error emails (comma-separated)  |
-| `changeset_source`  | Changeset source: `pop3` (default), `both`, or `rest`. `both` runs the REST API track in read-only mode alongside POP3 for comparison. `rest` uses the REST API as the authoritative source. When switching to `both` or `rest`, `last_change_number.txt` is seeded automatically on the first run. |
+| Setting            | Description                                                                                                                                                                                                                                                                                         |
+|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `username`         | POP3 mailbox username                                                                                                                                                                                                                                                                               |
+| `password`         | POP3 mailbox password                                                                                                                                                                                                                                                                               |
+| `pophost`          | POP3 server hostname                                                                                                                                                                                                                                                                                |
+| `smtp_host`        | SMTP server for error emails                                                                                                                                                                                                                                                                        |
+| `error_mail_from`  | Sender address for error emails                                                                                                                                                                                                                                                                     |
+| `error_mail_to`    | Recipient(s) for error emails (comma-separated)                                                                                                                                                                                                                                                     |
+| `changeset_source` | Changeset source: `pop3` (default), `both`, or `rest`. `both` runs the REST API track in read-only mode alongside POP3 for comparison. `rest` uses the REST API as the authoritative source. When switching to `both` or `rest`, `last_change_number.txt` is seeded automatically on the first run. |
 
 The following environment variables are also supported:
 
-| Variable    | Default | Description                                      |
-|-------------|---------|--------------------------------------------------|
+| Variable    | Default | Description                                                |
+|-------------|---------|------------------------------------------------------------|
 | `LOG_LEVEL` | `INFO`  | Python logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 
 To change the log level in production, add or update the `env:` block for the
@@ -79,6 +89,7 @@ as the `gerrit-reviewer-bot` tool, scheduled via `k8s-jobs.yaml`.
 To get access, request membership at https://toolsadmin.wikimedia.org/tools/id/gerrit-reviewer-bot.
 
 To deploy changes:
+
 ``` bash
 ssh <your-wikitech-username>@login.toolforge.org
 become gerrit-reviewer-bot
@@ -88,6 +99,7 @@ toolforge jobs load k8s-jobs.yaml
 ```
 
 To set up the venv for manual runs on the bastion (only needed once, or after Python upgrades):
+
 ``` bash
 python3.13 -m venv --without-pip ~/venv-tf-python313
 curl -sSf https://bootstrap.pypa.io/get-pip.py | ~/venv-tf-python313/bin/python
@@ -95,11 +107,13 @@ curl -sSf https://bootstrap.pypa.io/get-pip.py | ~/venv-tf-python313/bin/python
 ```
 
 To do a manual test run:
+
 ``` bash
 bash ~/src/gerrit-reviewer-bot/gerrit_reviewer_bot_tf-python313.sh
 ```
 
 To override the log level for a manual run:
+
 ``` bash
 LOG_LEVEL=INFO bash ~/src/gerrit-reviewer-bot/gerrit_reviewer_bot_tf-python313.sh
 ```
