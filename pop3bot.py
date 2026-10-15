@@ -1,9 +1,14 @@
 import sys
 import traceback
 from datetime import datetime, timezone
+from types import TracebackType
 
 
-def _excepthook(exc_type, exc_value, exc_tb):
+def _excepthook(
+    exc_type: type[BaseException],
+    exc_value: BaseException,
+    exc_tb: TracebackType | None,
+) -> None:
     print(datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'), file=sys.stderr)
     traceback.print_exception(exc_type, exc_value, exc_tb)
 
@@ -33,7 +38,7 @@ poplib._MAXLINE = 1024 * 1024  # type: ignore[attr-defined]
 logger = logging.getLogger('pop3bot')
 
 
-def mkmailbox(debug=0):
+def mkmailbox(debug: int = 0) -> poplib.POP3_SSL:
     import config
     username = config.username
     password = config.password
@@ -41,7 +46,7 @@ def mkmailbox(debug=0):
     for attempt in range(3):
         mailbox = None
         try:
-            mailbox = poplib.POP3_SSL(config.pophost, '995', timeout=30)
+            mailbox = poplib.POP3_SSL(config.pophost, 995, timeout=30)
             mailbox.set_debuglevel(debug)
             mailbox.user(username)
             mailbox.pass_(password)
@@ -57,9 +62,10 @@ def mkmailbox(debug=0):
                 raise
             logger.warning("POP3 connection attempt %d failed: %s; retrying in %ds", attempt + 1, e, (attempt + 1) * 5)
             time.sleep((attempt + 1) * 5)
+    raise RuntimeError("unreachable: mkmailbox exhausted retries without raising")
 
 
-def mail_generator(mailbox) -> Iterable[bytes]:
+def mail_generator(mailbox: poplib.POP3_SSL) -> Iterable[bytes]:
     """ RETRieves the contents of mails, yields those
         and DELEtes them before the next mail is RETRieved """
     nmails, octets = mailbox.stat()
