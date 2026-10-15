@@ -1,19 +1,28 @@
 import smtplib
+import sys
+from datetime import UTC, datetime
 from email.message import EmailMessage
 
 import config
 
+
+def log(text: str) -> None:
+    """Print a line prefixed with a UTC timestamp (matching pop3bot's format)."""
+    ts = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%SZ")
+    print(f"{ts} {text}")
+
+
 try:
     errlog = open("gerrit-reviewer-bot.err").readlines()[-100:]
 except FileNotFoundError:
-    print("OK")
-    exit(0)
+    log("OK")
+    sys.exit(0)
 
 errorlines = errlog
 
 if not any(errorlines):
-    print("OK")
-    exit(0)
+    log("OK")
+    sys.exit(0)
 
 errortext = "".join(errorlines)
 
@@ -38,7 +47,7 @@ try:
     s = smtplib.SMTP(config.smtp_host)
     s.send_message(msg)
     s.quit()
-    print("Sent error email")
+    log("Sent error email")
 except smtplib.SMTPException as e:
-    print(f"Failed to send error email: {e}")
-    exit(1)
+    log(f"Failed to send error email: {e}")
+    sys.exit(1)
