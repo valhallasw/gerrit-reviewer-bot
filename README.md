@@ -29,6 +29,13 @@ Then, to test:
 .venv/bin/pytest
 ```
 
+Optionally, enable the git hooks so `ruff` formats and lints each commit
+automatically (`requirements-dev.txt` includes `pre-commit`):
+
+``` bash
+.venv/bin/pre-commit install
+```
+
 The main algorithm for determining reviewers is the ReviewerFactory in
 add_reviewer.py. gerrit_rest.py contains basic functionality for accessing
 the Gerrit REST API. pop3bot.py reads Gerrit mails from a POP3 mailbox,

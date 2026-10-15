@@ -1,0 +1,10 @@
+# Run `pre-commit install` once to enable these hooks locally. They keep the
+# working tree formatted and lint-clean so IDE auto-formatting never lands
+# stray changes in a commit. Ruff is pinned to match requirements-dev.txt / CI.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.0
+    hooks:
+      - id: ruff-check
+        args: [ --fix ]
+      - id: ruff-format
