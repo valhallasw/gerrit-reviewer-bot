@@ -310,9 +310,14 @@ def _run_rest_track(g: gerrit_rest.GerritREST) -> None:
 
 
 def main() -> None:
+    # Log timestamps in UTC with an explicit 'Z' suffix. Toolforge pods run in
+    # UTC, and the excepthook and last_change_timestamp.txt also use UTC, so
+    # this keeps every timestamp the bot emits unambiguous and consistent.
+    logging.Formatter.converter = time.gmtime
     logging.basicConfig(
         level=os.environ.get("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%SZ",
         stream=sys.stdout,
     )
 
