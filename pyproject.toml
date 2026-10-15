@@ -1,0 +1,15 @@
+[tool.mypy]
+python_version = "3.13"
+# Third-party libraries without type stubs (e.g. lxml, poplib internals).
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+# config.py is created at deploy time from config.py.example and is not present
+# in CI; it is imported lazily inside functions.
+module = "config"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
