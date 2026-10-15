@@ -12,7 +12,12 @@ import lxml.objectify
 class ReviewerFactory:
     nofilere = re.compile('')
 
-    def __init__(self, page: str = "Git/Reviewers", template: str = "Gerrit-reviewer", logger: logging.Logger | None = None) -> None:
+    def __init__(
+        self,
+        page: str = "Git/Reviewers",
+        template: str = "Gerrit-reviewer",
+        logger: logging.Logger | None = None,
+    ) -> None:
         self.page = page
         self.template = template
         self.logger = logger or logging.getLogger('add_reviewers')

@@ -1,4 +1,6 @@
 [flake8]
-ignore = 
+# W503: line break before binary operator — conflicts with W504 and modern
+# PEP 8 guidance (break *before* the operator is now preferred).
+ignore = W503
 max-line-length = 127
-exclude =
+exclude = .git,__pycache__,.venv,build,dist
