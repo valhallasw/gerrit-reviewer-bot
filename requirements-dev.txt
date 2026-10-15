@@ -1,0 +1,8 @@
+# Development and CI tooling. Runtime dependencies live in requirements.txt.
+# Pinned here (rather than inline in CI) so Dependabot's pip ecosystem can
+# propose updates.
+-r requirements.txt
+ruff==0.17.0
+pytest==9.1.1
+mypy==2.4.0
+types-requests==2.33.0.20261006

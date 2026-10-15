@@ -20,7 +20,7 @@ Development
 git clone https://github.com/valhallasw/gerrit-reviewer-bot
 cd gerrit-reviewer-bot
 python3.13 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r requirements-dev.txt
 ```
 
 Then, to test:
