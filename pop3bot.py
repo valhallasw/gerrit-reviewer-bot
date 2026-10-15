@@ -1,22 +1,6 @@
-import email.message
-import email.parser
-import logging
-import os
 import sys
 import traceback
-from collections.abc import Iterable
 from datetime import datetime, timezone
-from pathlib import Path
-
-import time
-
-import gerrit_rest
-from add_reviewer import ReviewerFactory, add_reviewers
-
-# monkey patch max line length for poplib
-# as gmail sometimes sends > 2048 char lines
-import poplib
-poplib._MAXLINE = 1024 * 1024  # type: ignore[attr-defined]
 
 
 def _excepthook(exc_type, exc_value, exc_tb):
@@ -24,7 +8,27 @@ def _excepthook(exc_type, exc_value, exc_tb):
     traceback.print_exception(exc_type, exc_value, exc_tb)
 
 
+# Install the timestamping excepthook before any further imports, so that a
+# failure while importing the modules below (e.g. a missing dependency after a
+# Python upgrade) still gets a timestamp written to the error log.
 sys.excepthook = _excepthook
+
+import email.message  # noqa: E402
+import email.parser  # noqa: E402
+import logging  # noqa: E402
+import os  # noqa: E402
+from collections.abc import Iterable  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+import time  # noqa: E402
+
+import gerrit_rest  # noqa: E402
+from add_reviewer import ReviewerFactory, add_reviewers  # noqa: E402
+
+# monkey patch max line length for poplib
+# as gmail sometimes sends > 2048 char lines
+import poplib  # noqa: E402
+poplib._MAXLINE = 1024 * 1024  # type: ignore[attr-defined]
 
 logger = logging.getLogger('pop3bot')
 
