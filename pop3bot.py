@@ -35,7 +35,7 @@ from add_reviewer import ReviewerFactory, add_reviewers  # noqa: E402
 
 poplib._MAXLINE = 1024 * 1024  # type: ignore[attr-defined]
 
-logger = logging.getLogger("pop3bot")
+logger = logging.getLogger("main")
 
 
 def mkmailbox(debug: int = 0) -> poplib.POP3_SSL:
