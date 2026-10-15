@@ -1,6 +1,6 @@
 import sys
 import traceback
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import TracebackType
 
 
@@ -9,7 +9,7 @@ def _excepthook(
     exc_value: BaseException,
     exc_tb: TracebackType | None,
 ) -> None:
-    print(datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'), file=sys.stderr)
+    print(datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"), file=sys.stderr)
     traceback.print_exception(exc_type, exc_value, exc_tb)
 
 
@@ -22,24 +22,25 @@ import email.message  # noqa: E402
 import email.parser  # noqa: E402
 import logging  # noqa: E402
 import os  # noqa: E402
-from collections.abc import Iterable  # noqa: E402
-from pathlib import Path  # noqa: E402
-
-import time  # noqa: E402
-
-import gerrit_rest  # noqa: E402
-from add_reviewer import ReviewerFactory, add_reviewers  # noqa: E402
 
 # monkey patch max line length for poplib
 # as gmail sometimes sends > 2048 char lines
 import poplib  # noqa: E402
+import time  # noqa: E402
+from collections.abc import Iterable  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+import gerrit_rest  # noqa: E402
+from add_reviewer import ReviewerFactory, add_reviewers  # noqa: E402
+
 poplib._MAXLINE = 1024 * 1024  # type: ignore[attr-defined]
 
-logger = logging.getLogger('pop3bot')
+logger = logging.getLogger("pop3bot")
 
 
 def mkmailbox(debug: int = 0) -> poplib.POP3_SSL:
     import config
+
     username = config.username
     password = config.password
 
@@ -60,14 +61,19 @@ def mkmailbox(debug: int = 0) -> poplib.POP3_SSL:
                     pass
             if attempt == 2:
                 raise
-            logger.warning("POP3 connection attempt %d failed: %s; retrying in %ds", attempt + 1, e, (attempt + 1) * 5)
+            logger.warning(
+                "POP3 connection attempt %d failed: %s; retrying in %ds",
+                attempt + 1,
+                e,
+                (attempt + 1) * 5,
+            )
             time.sleep((attempt + 1) * 5)
     raise RuntimeError("unreachable: mkmailbox exhausted retries without raising")
 
 
 def mail_generator(mailbox: poplib.POP3_SSL) -> Iterable[bytes]:
-    """ RETRieves the contents of mails, yields those
-        and DELEtes them before the next mail is RETRieved """
+    """RETRieves the contents of mails, yields those
+    and DELEtes them before the next mail is RETRieved"""
     nmails, octets = mailbox.stat()
     for i in range(1, nmails + 1):
         # use TOP rather than REPR; gmail (sometimes?) interprets REPR'd
@@ -76,7 +82,9 @@ def mail_generator(mailbox: poplib.POP3_SSL) -> Iterable[bytes]:
         mailbox.dele(i)
 
 
-def message_generator(emails: Iterable[bytes]) -> Iterable[tuple[email.message.Message, str]]:
+def message_generator(
+    emails: Iterable[bytes],
+) -> Iterable[tuple[email.message.Message, str]]:
     p = email.parser.BytesParser()
     for raw in emails:
         msg = p.parsebytes(raw)
@@ -88,18 +96,20 @@ def message_generator(emails: Iterable[bytes]) -> Iterable[tuple[email.message.M
         while isinstance(m.get_payload(), list):
             m = m.get_payload()[0]  # type: ignore[assignment,index]
 
-        yield msg, m.get_payload(decode=True).decode('utf-8', 'replace')  # type: ignore[union-attr]
+        yield msg, m.get_payload(decode=True).decode("utf-8", "replace")  # type: ignore[union-attr]
 
 
-def gerritmail_generator(generator: Iterable[tuple[email.message.Message, str]]) -> Iterable[dict[str, str]]:
+def gerritmail_generator(
+    generator: Iterable[tuple[email.message.Message, str]],
+) -> Iterable[dict[str, str]]:
     for message, contents in generator:
         mi = dict(list(message.items()))
-        subject = mi.get('Subject', 'Unknown')
-        sender = mi.get('From', 'Unknown')
+        subject = mi.get("Subject", "Unknown")
+        sender = mi.get("From", "Unknown")
 
         gerrit_data = {}
 
-        for (header, value) in message.items():
+        for header, value in message.items():
             if header.startswith("X-Gerrit"):
                 gerrit_data[header] = value.rstrip()
 
@@ -108,7 +118,7 @@ def gerritmail_generator(generator: Iterable[tuple[email.message.Message, str]])
                 k, v = line.split(": ", 1)
                 gerrit_data[k] = v.rstrip()
 
-        logger.info("%s %s %s", subject, sender, gerrit_data.get('X-Gerrit-Change-Id'))
+        logger.info("%s %s %s", subject, sender, gerrit_data.get("X-Gerrit-Change-Id"))
 
         if gerrit_data:
             yield gerrit_data
@@ -116,33 +126,35 @@ def gerritmail_generator(generator: Iterable[tuple[email.message.Message, str]])
             logger.warning("Skipping; Contents: %s", contents)
 
 
-def new_changeset_generator(g: gerrit_rest.GerritREST, mail_generator: Iterable[dict[str, str]]) -> Iterable[dict]:
+def new_changeset_generator(
+    g: gerrit_rest.GerritREST, mail_generator: Iterable[dict[str, str]]
+) -> Iterable[dict]:
     for mail in mail_generator:
-        mt = mail.get('X-Gerrit-MessageType', '')
-        ps = mail.get('Gerrit-PatchSet', '')
-        commit = mail.get('X-Gerrit-Commit')
+        mt = mail.get("X-Gerrit-MessageType", "")
+        ps = mail.get("Gerrit-PatchSet", "")
+        commit = mail.get("X-Gerrit-Commit")
         if not commit:
             logger.warning("Skipping message with no X-Gerrit-Commit: %r", mail)
             continue
 
-        if mt != 'newchange':
+        if mt != "newchange":
             logger.debug("skipping message (%s)", mt)
             continue
-        if ps != '1':
+        if ps != "1":
             logger.debug("skipping PS%s", ps)
             continue
         logger.debug("getting %s", commit)
         matchingchange = g.get_changeset(commit)
         if not matchingchange:
             logger.warning("Could not find matching change for %s", commit)
-        elif matchingchange.get('work_in_progress'):
+        elif matchingchange.get("work_in_progress"):
             logger.debug("skipping WIP change %s", commit)
         else:
             yield matchingchange
 
 
-LAST_TIMESTAMP_FILE = Path('last_change_timestamp.txt')
-VALID_SOURCES = ('pop3', 'both', 'rest')
+LAST_TIMESTAMP_FILE = Path("last_change_timestamp.txt")
+VALID_SOURCES = ("pop3", "both", "rest")
 
 
 def read_last_timestamp() -> str | None:
@@ -157,41 +169,54 @@ def write_last_timestamp(timestamp: str) -> None:
 
 
 def current_timestamp() -> str:
-    return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def compare_tracks(
-    primary: dict[str, list[str]],
-    secondary: dict[str, list[str]]
+    primary: dict[str, list[str]], secondary: dict[str, list[str]]
 ) -> None:
     primary_ids = set(primary)
     secondary_ids = set(secondary)
 
     for change_id in primary_ids - secondary_ids:
-        logger.info("REST track: change only in POP3 track: %s (reviewers: %r)", change_id, sorted(primary[change_id]))
+        logger.info(
+            "REST track: change only in POP3 track: %s (reviewers: %r)",
+            change_id,
+            sorted(primary[change_id]),
+        )
     for change_id in secondary_ids - primary_ids:
-        logger.info("REST track: change only in REST track: %s (reviewers: %r)", change_id, sorted(secondary[change_id]))
+        logger.info(
+            "REST track: change only in REST track: %s (reviewers: %r)",
+            change_id,
+            sorted(secondary[change_id]),
+        )
     for change_id in primary_ids & secondary_ids:
         p = sorted(primary[change_id])
         s = sorted(secondary[change_id])
         if p != s:
-            logger.info("REST track: reviewer mismatch for %s: POP3=%r REST=%r", change_id, p, s)
+            logger.info(
+                "REST track: reviewer mismatch for %s: POP3=%r REST=%r", change_id, p, s
+            )
 
 
-def run_pop3_track(g: gerrit_rest.GerritREST, RF: ReviewerFactory, authoritative: bool) -> dict[str, list[str]]:
+def run_pop3_track(
+    g: gerrit_rest.GerritREST, RF: ReviewerFactory, authoritative: bool
+) -> dict[str, list[str]]:
     mailbox = mkmailbox(0)
     nmails, octets = mailbox.stat()
     logger.info("%i e-mails to process (%i kB)", nmails, octets / 1024)
 
     results: dict[str, list[str]] = {}
     try:
-        changesets = new_changeset_generator(g, gerritmail_generator(message_generator(mail_generator(mailbox))))
+        changesets = new_changeset_generator(
+            g, gerritmail_generator(message_generator(mail_generator(mailbox)))
+        )
         for changeset in changesets:
             try:
                 reviewers = list(RF.get_reviewers_for_changeset(changeset))
                 if authoritative:
-                    add_reviewers(changeset['id'], reviewers)
-                results[changeset['change_id']] = reviewers
+                    add_reviewers(changeset["id"], reviewers)
+                results[changeset["change_id"]] = reviewers
             except Exception:
                 logger.exception("Exception processing changeset %r", changeset)
     finally:
@@ -199,23 +224,33 @@ def run_pop3_track(g: gerrit_rest.GerritREST, RF: ReviewerFactory, authoritative
     return results
 
 
-def fetch_rest_changesets(g: gerrit_rest.GerritREST, last_timestamp: str) -> tuple[list[dict], str]:
+def fetch_rest_changesets(
+    g: gerrit_rest.GerritREST, last_timestamp: str
+) -> tuple[list[dict], str]:
     next_timestamp = current_timestamp()
     changesets = g.new_changes_since(last_timestamp)
-    logger.info("%i changesets to process via REST (since %s)", len(changesets), last_timestamp)
+    logger.info(
+        "%i changesets to process via REST (since %s)", len(changesets), last_timestamp
+    )
     return changesets, next_timestamp
 
 
-def process_rest_changesets(RF: ReviewerFactory, changesets: list[dict], authoritative: bool) -> dict[str, list[str]]:
+def process_rest_changesets(
+    RF: ReviewerFactory, changesets: list[dict], authoritative: bool
+) -> dict[str, list[str]]:
     results: dict[str, list[str]] = {}
     for changeset in changesets:
         try:
             reviewers = list(RF.get_reviewers_for_changeset(changeset))
             if authoritative:
-                add_reviewers(changeset['id'], reviewers)
+                add_reviewers(changeset["id"], reviewers)
             elif reviewers:
-                logger.info("REST track (read-only): would add reviewers for %s: %r", changeset['change_id'], reviewers)
-            results[changeset['change_id']] = reviewers
+                logger.info(
+                    "REST track (read-only): would add reviewers for %s: %r",
+                    changeset["change_id"],
+                    reviewers,
+                )
+            results[changeset["change_id"]] = reviewers
         except Exception:
             logger.exception("Exception in REST track for changeset %r", changeset)
     return results
@@ -238,8 +273,8 @@ def get_last_timestamp(seed_if_missing: bool) -> str | None:
 
 
 def _run_both_track(g: gerrit_rest.GerritREST) -> None:
-    RF_pop3 = ReviewerFactory(logger=logging.getLogger('add_reviewers.pop3'))
-    RF_rest = ReviewerFactory(logger=logging.getLogger('add_reviewers.rest'))
+    RF_pop3 = ReviewerFactory(logger=logging.getLogger("add_reviewers.pop3"))
+    RF_rest = ReviewerFactory(logger=logging.getLogger("add_reviewers.rest"))
     last_timestamp = get_last_timestamp(seed_if_missing=True)
     if last_timestamp is None:
         logger.warning("REST track skipped: could not determine last timestamp")
@@ -252,13 +287,15 @@ def _run_both_track(g: gerrit_rest.GerritREST) -> None:
         run_pop3_track(g, RF_pop3, authoritative=True)
         return
     primary_results = run_pop3_track(g, RF_pop3, authoritative=True)
-    secondary_results = process_rest_changesets(RF_rest, rest_changesets, authoritative=False)
+    secondary_results = process_rest_changesets(
+        RF_rest, rest_changesets, authoritative=False
+    )
     compare_tracks(primary_results, secondary_results)
     write_last_timestamp(next_timestamp)
 
 
 def _run_rest_track(g: gerrit_rest.GerritREST) -> None:
-    RF = ReviewerFactory(logger=logging.getLogger('add_reviewers.rest'))
+    RF = ReviewerFactory(logger=logging.getLogger("add_reviewers.rest"))
     last_timestamp = get_last_timestamp(seed_if_missing=True)
     if last_timestamp is None:
         logger.warning("REST track skipped: could not determine last timestamp")
@@ -274,25 +311,28 @@ def _run_rest_track(g: gerrit_rest.GerritREST) -> None:
 
 def main() -> None:
     logging.basicConfig(
-        level=os.environ.get('LOG_LEVEL', 'INFO').upper(),
-        format='%(asctime)s %(name)s %(levelname)s %(message)s',
-        stream=sys.stdout
+        level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        stream=sys.stdout,
     )
 
     import config
-    source = getattr(config, 'changeset_source', 'pop3')
+
+    source = getattr(config, "changeset_source", "pop3")
     if source not in VALID_SOURCES:
-        raise ValueError(f"Invalid changeset_source {source!r}, must be one of {VALID_SOURCES}")
+        raise ValueError(
+            f"Invalid changeset_source {source!r}, must be one of {VALID_SOURCES}"
+        )
     logger.info("Changeset source: %s", source)
 
-    g = gerrit_rest.GerritREST('https://gerrit.wikimedia.org/r')
+    g = gerrit_rest.GerritREST("https://gerrit.wikimedia.org/r")
 
-    if source == 'pop3':
-        RF = ReviewerFactory(logger=logging.getLogger('add_reviewers.pop3'))
+    if source == "pop3":
+        RF = ReviewerFactory(logger=logging.getLogger("add_reviewers.pop3"))
         run_pop3_track(g, RF, authoritative=True)
-    elif source == 'both':
+    elif source == "both":
         _run_both_track(g)
-    elif source == 'rest':
+    elif source == "rest":
         _run_rest_track(g)
 
 

@@ -1,21 +1,19 @@
 import logging
 import pathlib
-
 from email.message import Message
-from typing import NamedTuple, Tuple, List, Dict
+from typing import NamedTuple
 
-import pop3bot
 import gerrit_rest
+import pop3bot
 
 logging.basicConfig(level=logging.DEBUG)
 basepath = pathlib.Path(__file__).parent
 
 
-ProcessedEmail = NamedTuple('ProcessedEmail', [
-    ('messages', List[Tuple[Message, str]]),
-    ('gerritmails', List[Dict[str, str]]),
-    ('changesets', List[Dict])
-])
+class ProcessedEmail(NamedTuple):
+    messages: list[tuple[Message, str]]
+    gerritmails: list[dict[str, str]]
+    changesets: list[dict]
 
 
 class MockGerrit(gerrit_rest.GerritREST):
@@ -26,11 +24,11 @@ class MockGerrit(gerrit_rest.GerritREST):
         raise Exception()
 
     def get_changeset(self, changeid, o=None):
-        return {'commit': changeid}
+        return {"commit": changeid}
 
 
 def process_email(mbox: str) -> ProcessedEmail:
-    emails = [(basepath / "resources" / "gerrit_emails" / mbox).open('rb').read()]
+    emails = [(basepath / "resources" / "gerrit_emails" / mbox).open("rb").read()]
     messages = list(pop3bot.message_generator(emails))
     gerritmails = list(pop3bot.gerritmail_generator(messages))
     changesets = list(pop3bot.new_changeset_generator(MockGerrit(), gerritmails))
@@ -48,7 +46,7 @@ def test_notgerrit():
 
 def test_new_patchset():
     result = process_email("497076.mbox")
-    assert result.changesets == [{'commit': '9e71f2c950587a0a7a75da49c6af89001803ff17'}]
+    assert result.changesets == [{"commit": "9e71f2c950587a0a7a75da49c6af89001803ff17"}]
 
 
 def test_merged():

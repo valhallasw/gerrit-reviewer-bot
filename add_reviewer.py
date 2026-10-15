@@ -1,16 +1,16 @@
-import subprocess
-import re
 import logging
-from shlex import quote
+import re
+import subprocess
+from collections.abc import Generator, Iterable
 from fnmatch import fnmatch
-from typing import Generator, Iterable
+from shlex import quote
 
-import requests
 import lxml.objectify
+import requests
 
 
 class ReviewerFactory:
-    nofilere = re.compile('')
+    nofilere = re.compile("")
 
     def __init__(
         self,
@@ -20,19 +20,21 @@ class ReviewerFactory:
     ) -> None:
         self.page = page
         self.template = template
-        self.logger = logger or logging.getLogger('add_reviewers')
+        self.logger = logger or logging.getLogger("add_reviewers")
 
     @property
     def data(self):
-        if hasattr(self, '_data'):
+        if hasattr(self, "_data"):
             return self._data
         url = "https://www.mediawiki.org/w/api.php?format=json&action=parse&page=Git/Reviewers&prop=parsetree"
-        headers = {"User-Agent": "gerrit-reviewer-bot/1.0 (https://github.com/valhallasw/gerrit-reviewer-bot)"}
+        headers = {
+            "User-Agent": "gerrit-reviewer-bot/1.0 (https://github.com/valhallasw/gerrit-reviewer-bot)"
+        }
         return requests.get(url, headers=headers).json()
 
     @property
     def objecttree(self):
-        return lxml.objectify.fromstring(self.data['parse']['parsetree']['*'])
+        return lxml.objectify.fromstring(self.data["parse"]["parsetree"]["*"])
 
     def _tryParseInt(self, value, default: int | None = None) -> int | None:
         try:
@@ -46,8 +48,8 @@ class ReviewerFactory:
         filere = self.nofilere
         matchall = False
 
-        for part in sibling.iter('part'):
-            if part.name == "" and part.name.attrib['index'] == '1':
+        for part in sibling.iter("part"):
+            if part.name == "" and part.name.attrib["index"] == "1":
                 reviewer = part.value.text
             elif part.name == "every":
                 modulo = self._tryParseInt(part.value, 1)
@@ -58,115 +60,151 @@ class ReviewerFactory:
                     regexp = part.value.text or part.value.ext.inner.text
                     filere = re.compile(regexp, flags=re.DOTALL | re.IGNORECASE)
                 except re.error:
-                    self.logger.error("Could not process file regexp %r -- ignoring." % regexp)
+                    self.logger.error(
+                        f"Could not process file regexp {regexp!r} -- ignoring."
+                    )
             elif part.name == "match_all_files" or part.value.text == "match_all_files":
                 matchall = True
-            elif part.name == "only_match_new_files" or part.value.text == "only_match_new_files":
-                self.logger.info("%r:%r -> only checking new files" % (name, reviewer))
+            elif (
+                part.name == "only_match_new_files"
+                or part.value.text == "only_match_new_files"
+            ):
+                self.logger.info(f"{name!r}:{reviewer!r} -> only checking new files")
                 changedfiles = addedfiles
 
         return reviewer, modulo, filere, matchall, changedfiles
 
     def _reviewer_generator(
         self, project: str, changedfiles: list[str], addedfiles: list[str] | None = None
-    ) -> Generator[tuple[str, int, str], None, None]:
+    ) -> Generator[tuple[str, int, str]]:
         if addedfiles is None:
             addedfiles = []
         tree = self.objecttree
 
-        for section in tree.iter('h'):
-            name = section.text.strip('= ')
+        for section in tree.iter("h"):
+            name = section.text.strip("= ")
             if not fnmatch(project, name):
                 continue
             for sibling in section.itersiblings():
                 if sibling.tag == "h":
                     break
                 if sibling.tag == "template" and sibling.title == self.template:
-                    reviewer, modulo, filere, matchall, changedfiles = self._parse_template(
-                        sibling, changedfiles, addedfiles, name
+                    reviewer, modulo, filere, matchall, changedfiles = (
+                        self._parse_template(sibling, changedfiles, addedfiles, name)
                     )
                     if matchall:
                         result = all(filere.search(file) for file in changedfiles)
                     else:
                         result = any(filere.search(file) for file in changedfiles)
                     if result:
-                        self.logger.debug('* MATCH in section %r:' % name)
+                        self.logger.debug(f"* MATCH in section {name!r}:")
                         self.logger.debug(lxml.objectify.dump(sibling))
                         yield reviewer, modulo, name
 
     def _filter_reviewers(
-        self, reviewers: Iterable[tuple[str, int, str]], owner_name: str, changeset_number: int
-    ) -> Generator[str, None, None]:
-        if owner_name.lower() == 'l10n-bot':
-            self.logger.debug('Skipping l10n-bot')
+        self,
+        reviewers: Iterable[tuple[str, int, str]],
+        owner_name: str,
+        changeset_number: int,
+    ) -> Generator[str]:
+        if owner_name.lower() == "l10n-bot":
+            self.logger.debug("Skipping l10n-bot")
             return
 
         seen: set[str] = set()
         i = 0
-        for (reviewer, modulo, section) in reviewers:
+        for reviewer, modulo, section in reviewers:
             if reviewer.lower() == owner_name.lower():
-                self.logger.debug('Skipping owner %r' % reviewer)
+                self.logger.debug(f"Skipping owner {reviewer!r}")
                 continue
 
-            if ((changeset_number + i) % modulo == 0):
+            if (changeset_number + i) % modulo == 0:
                 if reviewer.lower() not in seen:
                     seen.add(reviewer.lower())
                     yield reviewer
                 else:
-                    self.logger.debug('Skipping duplicate %r matched in section %r', reviewer, section)
+                    self.logger.debug(
+                        "Skipping duplicate %r matched in section %r", reviewer, section
+                    )
             else:
-                self.logger.debug('Skipping %r due to modulo', reviewer)
+                self.logger.debug("Skipping %r due to modulo", reviewer)
             i += 1
 
     def get_reviewers_for_changeset(self, changeset: dict) -> Iterable[str]:
-        owner = changeset['owner']['name']
+        owner = changeset["owner"]["name"]
 
         try:
-            changes = list(changeset['revisions'].values())[0]['files']
+            changes = list(changeset["revisions"].values())[0]["files"]
             changedfiles = [k for (k, v) in list(changes.items())]
-            addedfiles = [k for (k, v) in list(changes.items()) if 'status' in v and v['status'] == 'A']
+            addedfiles = [
+                k
+                for (k, v) in list(changes.items())
+                if "status" in v and v["status"] == "A"
+            ]
         except Exception:
-            self.logger.exception("Could not extract changed files from changeset %r", changeset)
+            self.logger.exception(
+                "Could not extract changed files from changeset %r", changeset
+            )
             changedfiles = addedfiles = []
 
-        project = changeset['project']
-        number = changeset['_number']
+        project = changeset["project"]
+        number = changeset["_number"]
 
-        self.logger.info("Processing changeset %s %s by %s", changeset['change_id'], changeset['subject'], owner)
+        self.logger.info(
+            "Processing changeset %s %s by %s",
+            changeset["change_id"],
+            changeset["subject"],
+            owner,
+        )
         for f in changedfiles:
             prefix = "A" if f in addedfiles else "u"
             self.logger.info("%s %s", prefix, f)
 
-        if changeset['status'] in ['ABANDONED', 'MERGED']:
-            self.logger.info("Changeset was %s; not adding reviewers", changeset['status'])
+        if changeset["status"] in ["ABANDONED", "MERGED"]:
+            self.logger.info(
+                "Changeset was %s; not adding reviewers", changeset["status"]
+            )
             return []
 
-        reviewers = self._filter_reviewers(self._reviewer_generator(project, changedfiles, addedfiles), owner, number)
+        reviewers = self._filter_reviewers(
+            self._reviewer_generator(project, changedfiles, addedfiles), owner, number
+        )
 
         return reviewers
 
 
 def add_reviewers(changeid, reviewers):
-    _logger = logging.getLogger('add_reviewers')
+    _logger = logging.getLogger("add_reviewers")
     reviewers = list(reviewers)
     if reviewers:
         params = []
         for reviewer in reviewers:
-            params.append('--add')
+            params.append("--add")
             params.append(reviewer)
         params.append(changeid)
         command = "gerrit set-reviewers " + " ".join(quote(p) for p in params)
         _logger.info("Running: %s", command)
         callcmd = [
-            "ssh", "-o", "ConnectTimeout=10", "-o", "Batchmode=yes",
-            "-o", "UserKnownHostsFile=known_hosts", "-i", "id_rsa",
-            "-p", "29418", "reviewer-bot@gerrit.wikimedia.org", command
+            "ssh",
+            "-o",
+            "ConnectTimeout=10",
+            "-o",
+            "Batchmode=yes",
+            "-o",
+            "UserKnownHostsFile=known_hosts",
+            "-i",
+            "id_rsa",
+            "-p",
+            "29418",
+            "reviewer-bot@gerrit.wikimedia.org",
+            command,
         ]
         retval = subprocess.call(callcmd)
         if retval != 0:
-            with open('debug.out', 'a') as fp:
+            with open("debug.out", "a") as fp:
                 retval = subprocess.call(
                     [callcmd[0]] + ["-v", "-v"] + callcmd[1:],
                     stdout=fp,
-                    stderr=subprocess.STDOUT)
-            raise Exception(command + ' was not executed successfully (code %i)' % retval)
+                    stderr=subprocess.STDOUT,
+                )
+            raise Exception(f"{command} was not executed successfully (code {retval})")

@@ -13,3 +13,12 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes (flake8 baseline); I: isort; UP: pyupgrade;
+# B: flake8-bugbear.
+select = ["E", "W", "F", "I", "UP", "B"]
