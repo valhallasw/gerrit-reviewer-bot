@@ -69,7 +69,7 @@ class ReviewerFactory:
 
     def _reviewer_generator(
         self, project: str, changedfiles: list[str], addedfiles: list[str] | None = None
-    ) -> Generator[tuple[str, int], None, None]:
+    ) -> Generator[tuple[str, int, str], None, None]:
         if addedfiles is None:
             addedfiles = []
         tree = self.objecttree
